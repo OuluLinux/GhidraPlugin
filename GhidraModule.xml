@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<moduleMetadata>
+	<moduleType>Core</moduleType>
+	<name>GhidraTCPCommentingPlugin</name>
+	<version>1.0.0</version>
+	<description>TCP Server Plugin for Ghidra Client Communication</description>
+	<createdOn>2025-11-19</createdOn>
+	<pluginClassNames>
+		<className>GhidraTCPCommentingPlugin</className>
+	</pluginClassNames>
+</moduleMetadata>

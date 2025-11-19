@@ -1,0 +1,65 @@
+// Build script for Ghidra plugin
+plugins {
+    id 'java-library'
+}
+
+// Set the Java compatibility
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+// Define where to find the Ghidra installation
+def ghidraInstallDir = findGhidraInstallDir()
+
+if (ghidraInstallDir == null) {
+    throw new GradleException("Unable to find Ghidra installation. Set 'ghidra.install.dir' in gradle-local.properties or provide -Pghidra.install.dir command line option.")
+}
+
+// Add the Ghidra installation's lib directory to the classpath
+dependencies {
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/Generic/lib", include: '*.jar')
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/Utility/lib", include: '*.jar')
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/Docking/lib", include: '*.jar')
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/Application/lib", include: '*.jar')
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Features/Base/lib", include: '*.jar')
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Features/GhidraServer/lib", include: '*.jar')
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Features/Decompiler/lib", include: '*.jar')
+}
+
+// Create a task to install the extension to the Ghidra installation
+task install(dependsOn: 'build') {
+    doLast {
+        copy {
+            from configurations.runtimeClasspath
+            from 'dist'
+            into "$ghidraInstallDir/Ghidra/Extensions/@extname@"
+        }
+    }
+}
+
+// Utility method to find Ghidra installation directory
+def findGhidraInstallDir() {
+    // Check for command line parameter
+    if (project.hasProperty('ghidra.install.dir')) {
+        return project.findProperty('ghidra.install.dir')
+    }
+
+    // Try to load from gradle-local.properties if it exists
+    def localProps = new Properties()
+    def localPropsFile = file('gradle-local.properties')
+    if (localPropsFile.exists()) {
+        localPropsFile.withInputStream { localProps.load(it) }
+    }
+
+    if (localProps['ghidra.install.dir'] != null) {
+        return localProps['ghidra.install.dir']
+    }
+
+    // Check for environment variable
+    if (System.getenv('GHIDRA_INSTALL_DIR') != null) {
+        return System.getenv('GHIDRA_INSTALL_DIR')
+    }
+
+    return null
+}
