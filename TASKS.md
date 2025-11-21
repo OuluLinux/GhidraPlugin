@@ -7,9 +7,9 @@
 - [ ] Add `NAVIGATE-STACK` - Show navigation history stack
 - [ ] Add `NAVIGATE-BACK` - Go back in navigation history
 - [ ] Add `NAVIGATE-FORWARD` - Go forward in navigation history
-- [ ] Add `BOOKMARK-LIST` - List all bookmarks
-- [ ] Add `BOOKMARK-SET <name> [address_or_function]` - Set bookmark at location
-- [ ] Add `BOOKMARK-GOTO <name>` - Go to bookmark
+- [x] Add `BOOKMARK-LIST` - List all bookmarks ✓ COMPLETED
+- [x] Add `BOOKMARK-SET <name> [address_or_function]` - Set bookmark at location ✓ COMPLETED
+- [x] Add `BOOKMARK-GOTO <name>` - Go to bookmark ✓ COMPLETED
 - [ ] Add `BOOKMARK-DELETE <name>` - Delete bookmark
 
 ### Task 1.2: Enhanced Renaming & Retyping
@@ -19,11 +19,11 @@
 - [ ] Add `REFACTOR-APPLY-TO-ALL-CALLS <function_name>` - Apply function signature to all calls
 
 ### Task 1.3: Note-Taking & Comment Management
-- [ ] Add `NOTE-ADD <location> <note_text>` - Add analysis note to location
-- [ ] Add `NOTE-LIST [location]` - List all notes (or at specific location)
+- [x] Add `NOTE-ADD <location> <note_text>` - Add analysis note to location ✓ COMPLETED
+- [x] Add `NOTE-LIST [location]` - List all notes (or at specific location) ✓ COMPLETED
 - [ ] Add `NOTE-GET <note_id>` - Retrieve specific note
 - [ ] Add `NOTE-DELETE <note_id>` - Delete specific note
-- [ ] Add `NOTE-SEARCH <search_term>` - Search notes by content
+- [x] Add `NOTE-SEARCH <search_term>` - Search notes by content ✓ COMPLETED
 - [ ] Add `COMMENT-TEMPLATE-ADD <name> <template>` - Add reusable comment templates
 - [ ] Add `COMMENT-TEMPLATE-APPLY <name> <location>` - Apply comment template
 
@@ -32,15 +32,15 @@
 - [ ] Add `SESSION-LOAD <name>` - Load analysis session
 - [ ] Add `SESSION-LIST` - List saved sessions
 - [ ] Add `SESSION-DELETE <name>` - Delete session
-- [ ] Add `LOCATION-GET` - Get current analysis location
-- [ ] Add `LOCATION-SAVE <name>` - Save current location with name
+- [x] Add `LOCATION-GET` - Get current analysis location ✓ COMPLETED
+- [x] Add `LOCATION-SAVE <name>` - Save current location with name ✓ COMPLETED
 
 ### Task 1.5: Advanced Decompilation Options
 - [ ] Add `DECOMPILE-STREAM <function_name> <chunk_size>` - Stream decompiled function in chunks
-- [ ] Add `DECOMPILE-CFG <function_name>` - Get control flow graph representation
+- [x] Add `DECOMPILE-CFG <function_name>` - Get control flow graph representation ✓ COMPLETED
 - [ ] Add `DECOMPILE-AST <function_name>` - Get abstract syntax tree representation
 - [ ] Add `DECOMPILE-UNOPTIMIZED <function_name>` - Get unoptimized decompilation
-- [ ] Add `DECOMPILE-CONTEXT <function_name> <depth>` - Get decompilation with callers/callees context
+- [x] Add `DECOMPILE-CONTEXT <function_name> <depth>` - Get decompilation with callers/callees context ✓ COMPLETED
 
 ## Phase 2: Structure Management
 
@@ -155,9 +155,9 @@
 
 ## Immediate Priorities (Next 2 Weeks)
 
-1. Enhance note-taking functionality: `NOTE-ADD`, `NOTE-LIST`
-2. Add bookmark management: `BOOKMARK-SET`, `BOOKMARK-GOTO`, `BOOKMARK-LIST`
+1. Enhance note-taking functionality: `NOTE-ADD`, `NOTE-LIST` ✓ COMPLETED
+2. Add bookmark management: `BOOKMARK-SET`, `BOOKMARK-GOTO`, `BOOKMARK-LIST` ✓ COMPLETED
 3. Implement simple roadmap system: `ROADMAP-ADD`, `ROADMAP-LIST`
 4. Add navigation commands: `NAVIGATE-TO`, `NAVIGATE-BACK`
 5. Enhance session management: `SESSION-SAVE`, `SESSION-LOAD`
-6. Add basic decompilation enhancements: `DECOMPILE-CFG`, `DECOMPILE-CONTEXT`
+6. Add basic decompilation enhancements: `DECOMPILE-CFG`, `DECOMPILE-CONTEXT` ✓ COMPLETED
