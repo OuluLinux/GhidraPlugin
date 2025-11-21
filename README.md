@@ -157,6 +157,32 @@ Once connected to the server through telnet or a client:
 - `FUN-NAME-SET old_name new_name` - Renames a function from old_name to new_name
 - `QUIT` - Closes the connection to the server
 
+## Server Reload Process
+
+### Manual Initial Load Command
+For the first time load of the server, use:
+```
+exec(open('/common/active/sblo/Dev/GhidraPlugin/src/python/ghidra_tcp_server_reloader_jython.py').read()) ; start_server(9003)
+```
+
+### Manual Reload Command (after initial load)
+For development purposes, after you've already loaded the server script, you need to manually reload the server after changes using:
+```
+stop_server() ; exec(open('/common/active/sblo/Dev/GhidraPlugin/src/python/ghidra_tcp_server_reloader_jython.py').read()) ; start_server(9003)
+```
+
+To use this command:
+1. Copy the command above
+2. Paste it in the Ghidra Jython console
+3. Press Enter to execute
+
+### Enhanced Reload Options
+For convenience, we've added additional reload functions:
+- `reload_server(9003)` - Reloads the server with a single command
+- `quick_reload(9003)` - Quick reload of the server
+- `auto_reload_checker()` - Run this in the console to auto-reload when requested by clients
+- `remote_reload.py` - Client-side script to trigger reloads remotely
+
 ## Recommendation
 
 Use the Python (Jython) approach as the main implementation route for development and testing, with the Java approach available for formal plugin deployment in production environments.

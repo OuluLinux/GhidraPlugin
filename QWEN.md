@@ -212,5 +212,83 @@ python3 demo_client.py interactive
 
 This allows for efficient workflow where you can quickly inspect multiple functions and progressively refine your understanding of the binary through automated remote analysis.
 
+## Reload Functionality Enhancement
+
+The TCP server implementation has been enhanced with convenient reload capabilities to streamline the development process:
+
+### Problem Solved
+Previously, developers had to manually run a complex command to reload the server after making changes:
+```python
+stop_server() ; exec(open('/common/active/sblo/Dev/GhidraPlugin/ghidra_tcp_server_enhanced.py').read()) ; start_server(9003)
+```
+
+### New Reload Features
+
+#### 1. Simplified Reload Function
+The `reload_server(port)` function allows reloading with a single command:
+```python
+reload_server(9003)
+```
+
+#### 2. File-based Reload
+The `quick_reload(port)` function provides a reliable way to restart the server:
+```python
+quick_reload(9003)
+```
+
+#### 3. Client-Initiated Reload
+- Added `RELOAD` command that clients can send to request immediate server reload
+- Added `RESTART` command that prepares the server for a reload
+- Added `auto_reload_checker()` to monitor for reload requests from clients
+
+#### 4. Remote Reload Script
+A `remote_reload.py` script is available to trigger reloads from the command line:
+```bash
+python3 /common/active/sblo/Dev/GhidraPlugin/src/python/remote_reload.py 9003
+```
+
+### Recommended Workflows
+
+#### For Active Development (Auto-Reload):
+```python
+# In Ghidra console
+exec(open('/common/active/sblo/Dev/GhidraPlugin/src/python/ghidra_tcp_server_with_reload_cmd.py').read())
+start_server(9003)
+auto_reload_checker()  # Run continuously to auto-reload when requested
+```
+
+Then trigger reloads remotely:
+```bash
+python3 /common/active/sblo/Dev/GhidraPlugin/src/python/remote_reload.py 9003
+```
+
+#### For Manual Reloads:
+```python
+# In Ghidra console
+exec(open('/common/active/sblo/Dev/GhidraPlugin/src/python/ghidra_tcp_server_with_reload_cmd.py').read())
+start_server(9003)
+
+# To reload after changes:
+reload_server(9003)  # or quick_reload(9003)
+```
+
+## Manual Command Requirement
+
+It's important to note that the basic reload process involves two different commands:
+
+For the initial load of the server:
+```python
+exec(open('/common/active/sblo/Dev/GhidraPlugin/src/python/ghidra_tcp_server_reloader_jython.py').read()) ; start_server(9003)
+```
+
+For reloading after changes (once the server script is already loaded):
+```python
+stop_server() ; exec(open('/common/active/sblo/Dev/GhidraPlugin/src/python/ghidra_tcp_server_reloader_jython.py').read()) ; start_server(9003)
+```
+
+To assist with this, we provide:
+1. The `start_server_manual_command.sh` script that echoes this command for easy copy/paste
+2. Enhanced reload functions that provide simpler alternatives
+
 ## Notes
-The plugin is designed to provide a TCP server interface that allows external clients to perform various tasks in Ghidra such as renaming functions/variables, getting/setting types, adding comments, etc. This enables integration with external tools and remote analysis capabilities. The Python implementation route is recommended for development and testing, while the Java route provides a more formal Ghidra integration.
+The plugin is designed to provide a TCP server interface that allows external clients to perform various tasks in Ghidra such as renaming functions/variables, getting/setting types, adding comments, etc. This enables integration with external tools and remote analysis capabilities. The Python implementation route is recommended for development and testing, while the Java route provides a more formal Ghidra integration. The new reload functionality significantly improves the development workflow by eliminating the need to retype complex command sequences.
