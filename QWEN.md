@@ -15,6 +15,7 @@ Through the development process, we discovered:
 ## Repository Structure
 The repository has been organized with the following structure:
 - `src/python/` - Contains Python source code files
+- `java/` - Contains Java source code and build files
 - `docs/` - Contains documentation files
 - `tests/python/` - Contains Python test files
 - `tmp/` - Temporary files directory (added to .gitignore)

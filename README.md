@@ -27,13 +27,13 @@ The repository follows this organized structure:
 - `start_ghidra_with_tcp_server.sh` : Script to launch Ghidra with instructions
 
 ### Java Implementation (Alternative)
-- `src/main/java/ClientDirectoryManager.java` : Directory management for clients
-- `src/main/java/ClientHandler.java` : Command handler implementation
-- `src/main/java/GhidraPathNavigator.java` : Path navigation implementation
-- `src/main/java/GhidraTCPCommentingPlugin.java` : Main plugin class
-- `build.gradle` : Gradle build configuration
-- `build.sh` : Build script for the Java plugin
-- `GhidraModule.xml` : Module information for Ghidra integration
+- `java/src/main/java/ClientDirectoryManager.java` : Directory management for clients
+- `java/src/main/java/ClientHandler.java` : Command handler implementation
+- `java/src/main/java/GhidraPathNavigator.java` : Path navigation implementation
+- `java/src/main/java/GhidraTCPCommentingPlugin.java` : Main plugin class
+- `java/build.gradle` : Gradle build configuration
+- `java/build.sh` : Build script for the Java plugin
+- `java/GhidraModule.xml` : Module information for Ghidra integration
 
 ## How to Use (Recommended - Python Route)
 

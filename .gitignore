@@ -1,5 +1,8 @@
-.gradle/
-build/
+# Java build directories
+.java_build/
+.java_gradle/
+java/.gradle/
+java/build/
 dist/
 *.log
 gradle-local.properties
@@ -18,6 +21,10 @@ target/
 .classpath
 .project
 .settings/
+
+# Java build artifacts (for both root and java directory)
+**/build/
+**/.gradle/
 
 # Python cache files
 __pycache__/
