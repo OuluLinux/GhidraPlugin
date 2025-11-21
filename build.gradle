@@ -1,6 +1,6 @@
 // Build script for Ghidra plugin
 plugins {
-    id 'java-library'
+    id 'java'
 }
 
 // Set the Java compatibility
@@ -9,31 +9,79 @@ java {
     targetCompatibility = JavaVersion.VERSION_11
 }
 
-// Define where to find the Ghidra installation
+// If Ghidra installation directory is provided via command line or environment variable
 def ghidraInstallDir = findGhidraInstallDir()
 
 if (ghidraInstallDir == null) {
     throw new GradleException("Unable to find Ghidra installation. Set 'ghidra.install.dir' in gradle-local.properties or provide -Pghidra.install.dir command line option.")
 }
 
-// Add the Ghidra installation's lib directory to the classpath
+// Set up dependencies - include all key Ghidra JARs
 dependencies {
+    // Use all JARs from the main Ghidra directories
     implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/Generic/lib", include: '*.jar')
     implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/Utility/lib", include: '*.jar')
     implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/Docking/lib", include: '*.jar')
     implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/Application/lib", include: '*.jar')
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/SoftwareModeling/lib", include: '*.jar')
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/Help/lib", include: '*.jar')
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/DB/lib", include: '*.jar')
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/Gui/lib", include: '*.jar')
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/Project/lib", include: '*.jar')
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Framework/FileSystem/lib", include: '*.jar')
+    
+    // Feature libraries
     implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Features/Base/lib", include: '*.jar')
     implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Features/GhidraServer/lib", include: '*.jar')
     implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Features/Decompiler/lib", include: '*.jar')
+    implementation fileTree(dir: "$ghidraInstallDir/Ghidra/Features/FileFormats/lib", include: '*.jar')
+    
+    // Include main module JARs directly
+    implementation files([
+        "$ghidraInstallDir/Ghidra/Framework/Generic/lib/Generic.jar",
+        "$ghidraInstallDir/Ghidra/Framework/Utility/lib/Utility.jar", 
+        "$ghidraInstallDir/Ghidra/Framework/Docking/lib/Docking.jar",
+        "$ghidraInstallDir/Ghidra/Framework/Application/lib/Application.jar",
+        "$ghidraInstallDir/Ghidra/Framework/SoftwareModeling/lib/SoftwareModeling.jar",
+        "$ghidraInstallDir/Ghidra/Framework/Help/lib/Help.jar",
+        "$ghidraInstallDir/Ghidra/Framework/DB/lib/DB.jar",
+        "$ghidraInstallDir/Ghidra/Framework/Gui/lib/Gui.jar",
+        "$ghidraInstallDir/Ghidra/Framework/Project/lib/Project.jar",
+        "$ghidraInstallDir/Ghidra/Framework/FileSystem/lib/FileSystem.jar",
+        "$ghidraInstallDir/Ghidra/Features/Base/lib/Base.jar",
+        "$ghidraInstallDir/Ghidra/Features/GhidraServer/lib/GhidraServer.jar",
+        "$ghidraInstallDir/Ghidra/Features/Decompiler/lib/Decompiler.jar"
+    ])
+}
+
+// Define the plugin jar task to include proper manifest
+jar {
+    manifest {
+        attributes(
+            'Plugin-Name': project.findProperty("extname") ?: 'GhidraTCPCommentingPlugin',
+            'Plugin-Description': 'TCP Server Plugin for Ghidra Client Communication',
+            'Plugin-Author': 'Your Name',
+            'Plugin-Version': project.findProperty("extversion") ?: '1.0.0',
+            'Plugin-Category-Name': 'Analysis',
+            'Plugin-Class-Name': 'GhidraTCPCommentingPlugin',
+            'Plugin-Point': 'ghidra.app.plugin.ExtensionPoint',
+            'Plugin-Dependencies': '',
+            'Extension-Name': project.findProperty("extname") ?: 'GhidraTCPCommentingPlugin'
+        )
+    }
 }
 
 // Create a task to install the extension to the Ghidra installation
 task install(dependsOn: 'build') {
     doLast {
+        def pluginDir = file("$ghidraInstallDir/Ghidra/Extensions/GhidraTCPCommentingPlugin")
+        pluginDir.mkdirs()
+        
         copy {
             from configurations.runtimeClasspath
             from 'dist'
-            into "$ghidraInstallDir/Ghidra/Extensions/@extname@"
+            from jar
+            into pluginDir
         }
     }
 }
@@ -51,7 +99,7 @@ def findGhidraInstallDir() {
     if (localPropsFile.exists()) {
         localPropsFile.withInputStream { localProps.load(it) }
     }
-
+    
     if (localProps['ghidra.install.dir'] != null) {
         return localProps['ghidra.install.dir']
     }

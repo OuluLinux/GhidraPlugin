@@ -67,7 +67,7 @@ public class GhidraPathNavigator {
 		}
 		
 		FunctionManager funcMgr = currentProgram.getFunctionManager();
-		Function func = funcMgr.getFunctionNamed(functionName);
+		Function func = findFunctionByName(funcMgr, functionName);
 		
 		if (func != null) {
 			return new PathElement(true, "Found function: " + functionName, PathType.FUNCTION, func);
@@ -90,7 +90,7 @@ public class GhidraPathNavigator {
 		
 		while (symbols.hasNext()) {
 			Symbol sym = symbols.next();
-			if (sym.getSymbolType() == SymbolType.DATA) {
+			if (sym.getSymbolType() == SymbolType.LABEL) {
 				return new PathElement(true, "Found variable: " + variableName, PathType.VARIABLE, sym.getObject());
 			}
 		}
@@ -183,7 +183,7 @@ public class GhidraPathNavigator {
 	private PathElement navigateToDefaultPath(String path) {
 		// Try to find a function with this name first
 		FunctionManager funcMgr = currentProgram.getFunctionManager();
-		Function func = funcMgr.getFunctionNamed(path);
+		Function func = findFunctionByName(funcMgr, path);
 		
 		if (func != null) {
 			return new PathElement(true, "Found function: " + path, PathType.FUNCTION, func);
@@ -256,7 +256,7 @@ public class GhidraPathNavigator {
 				
 				while (symbols.hasNext()) {
 					Symbol sym = symbols.next();
-					result.append("  ").append(sym.getName()).append(" (").append(sym.getSymbolType().name()).append(")\n");
+					result.append("  ").append(sym.getName()).append(" (").append(sym.getSymbolType().toString()).append(")\n");
 				}
 				
 				return result.toString().trim();
@@ -332,4 +332,18 @@ public class GhidraPathNavigator {
 			this.object = object;
 		}
 	}
+    /**
+     * Helper method to find a function by its name in the current program
+     * @param funcMgr The function manager to search in
+     * @param name The name of the function to find
+     * @return The Function with the given name, or null if not found
+     */
+    private static Function findFunctionByName(FunctionManager funcMgr, String name) {
+        for (Function func : funcMgr.getFunctions(true)) {
+            if (func.getName().equals(name)) {
+                return func;
+            }
+        }
+        return null;
+    }
 }

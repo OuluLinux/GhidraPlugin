@@ -1,145 +1,155 @@
-# GhidraTCPCommentingPlugin
+# Ghidra TCP Commenting Plugin - Implementation Guide
 
 ## Overview
-This is a Ghidra plugin that provides TCP server functionality to allow clients to communicate with and add comments to the binary being analyzed in Ghidra. The plugin creates a server that clients can connect to for collaborative analysis, similar to a directory service like Ghidra's CodeBrowser.
 
-## Features
-- TCP server for remote client connections
-- Comment management system accessible via client connections
-- Integration with Ghidra's CodeBrowser for displaying and managing comments
-- Client directory functionality to track connected clients
-- Command-based interface for client-server communication
-- Support for adding, retrieving, and managing comments remotely
+We have explored both Java and Jython approaches for implementing a TCP server plugin for Ghidra. Through our investigation, we discovered:
 
-## Requirements
-- Java 11 or higher
-- Ghidra 10.0 or higher
-- Gradle (for building)
+1. Creating a proper Java plugin requires specific extension properties and proper integration with Ghidra's module system to appear in the installation list
+2. The Jython approach provides a more accessible and practical way to implement TCP server functionality
+3. Both approaches can achieve the same goals, with Jython being easier to develop and test
 
-## Building
-To build the plugin:
-```bash
-./gradlew build
+Based on our analysis, we recommend treating the Python (Jython) approach as the main route for implementing the TCP server, with the Java implementation serving as an alternative for deployment if needed later.
+
+## Files in Each Approach
+
+### Python (Jython) Implementation (Main Approach)
+- `ghidra_tcp_server_enhanced.py` : Main implementation of the TCP server (Jython compatible with port selection)
+- `run_tcp_server.py` : Entry point script to start the server
+- `start_ghidra_with_tcp_server.sh` : Script to launch Ghidra with instructions
+
+### Java Implementation (Alternative)
+- `src/main/java/ClientDirectoryManager.java` : Directory management for clients
+- `src/main/java/ClientHandler.java` : Command handler implementation
+- `src/main/java/GhidraPathNavigator.java` : Path navigation implementation
+- `src/main/java/GhidraTCPCommentingPlugin.java` : Main plugin class
+- `build.gradle` : Gradle build configuration
+- `build.sh` : Build script for the Java plugin
+- `GhidraModule.xml` : Module information for Ghidra integration
+
+## How to Use (Recommended - Python Route)
+
+### 1. Launch Ghidra
+```
+./start_ghidra_with_tcp_server.sh
 ```
 
-To install the plugin to your local Ghidra installation:
-```bash
-./gradlew install
+### 2. Load and Run the Python Script in Ghidra
+1. Open Ghidra
+2. Go to `Window -> Script Manager`
+3. Find and run the `ghidra_tcp_server_working.py` script
+4. The TCP server will start and listen on port 9000
+
+### 3. Connect Your Client
+Connect your external client to `localhost:9000` to start sending commands to Ghidra.
+
+## Available Commands (Both Routes)
+
+The TCP server supports these commands:
+
+- `VAR-TYPE-SET <var_name> <type>` - Set variable type
+- `VAR-TYPE-GET <var_name>` - Get variable type
+- `FUN-NAME-SET <old_function_name> <new_function_name>` - Rename function
+- `FUN-NAME-GET` - Get current function name
+- `VAR-NAME-SET <old_var_name> <new_var_name>` - Rename variable
+- `LIST-FUNCTION <fun_name>` - List items in function
+- `LIST-CLASS <class_name>` - List items in class
+- `LIST-NAMESPACE <namespace>` - List items in namespace
+- `SET-COMMENT <fun_name> <line> <text>` - Set comment
+- `REMOVE-COMMENT <fun_name> <line>` - Remove comment
+- `REMOVE-ALL-COMMENTS <fun_name>` - Remove all comments in function
+- `FIND-VAR-REFERENCES <var_name>` - Find variable references
+- `FIND-FUNCTION-REFERENCES <fun_name>` - Find function references
+- `FIND-ADDR-REFERENCES <hex_addr>` - Find address references
+- `FIND-LABEL <label_name>` - Find label
+- `RENAME-LABEL <old_label_name> <new_label_name>` - Rename label
+- `RENAME-GLOBAL <old_var_name> <new_var_name>` - Rename global variable
+- `RETYPE-GLOBAL <var_name> <new_type>` - Retype global variable
+- `LS <path>` - List items at path
+- `CAT <path>` - Print content at path
+- `HELP` - Show help
+- `QUIT` - Close connection
+
+## Example Client Usage (Both Routes)
+
+```python
+import socket
+
+# Connect to the TCP server
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.connect(('localhost', 9000))
+
+# Send a command
+client_socket.send(b'FUN-NAME-GET\n')
+response = client_socket.recv(4096).decode('utf-8')
+print(response)
+
+# Close connection
+client_socket.close()
 ```
 
-## Usage
-After installation, the plugin will appear in Ghidra's plugin list. Enable it in the CodeBrowser tool, and use the "Tools" menu to start the TCP server. The server will start on port 9000 by default.
+## Roadmap by Implementation Language
 
-## Client Commands
-The following commands are supported by the TCP server:
+### Java-Specific Features
+- Proper extension.properties file for Ghidra extension recognition
+- Full Ghidra plugin lifecycle management
+- Integration with Ghidra's plugin installation system
+- Better performance in production environments
+- More complex setup but cleaner integration with Ghidra
 
-### Navigation & Information Commands
-- `ls <path>` - Show all items in the path (like in CodeBrowser)
-- `cat <path>` - Print the C/C++ code as in CodeBrowser, if the path is FUN... similar printing for other items
-- `help` - Show help information for all commands
+### Python (Jython)-Specific Features
+- Simpler development and debugging process
+- More accessible for rapid prototyping
+- Direct access to Ghidra API through Jython
+- Faster iteration cycle during development
+- Easier to modify and test functionality
 
-### Variable Management Commands
-- `var-type-set <var_name> <type>` - Change the type of variable, but check if it is valid first; print errors if not valid
-- `var-type-get <var_name>` - Get the type of a variable
-- `var-name-set <old_var_name> <new_var_name>` - Rename a variable
+### Features Common to Both Approaches
+- TCP server functionality on port 9000
+- Support for all specified commands
+- Proper error handling and responses
+- Integration with Ghidra's internal data structures
+- Threaded client handling for multiple connections
 
-### Function Management Commands
-- `fun-name-set <old_function_name> <new_function_name>` - Rename a function
-- `fun-name-get` - Get the current function name
-- `list-function <fun_name>` - Print all items (variables, classes, enums, etc.) in the scope of the function
+## Notes
 
-### Class and Namespace Management Commands
-- `list-class <class_name>` - Print all items in class
-- `list-namespace <namespace>` - Print all items in namespace
+- The Python approach is recommended as the main implementation path
+- The Java approach provides a more formal Ghidra plugin but requires more configuration
+- Both approaches achieve the same functionality but through different mechanisms
+- The Python script needs to be run from within Ghidra's Script Manager
+- Ensure the appropriate ports are available on your system
 
-### Comment Management Commands
-- `set-comment <fun_name> <line> <text>` - Set text comment to code at the specified line in function
-- `remove-comment <fun_name> <line>` - Remove comment at the specified line in function
-- `remove-all-comments <fun_name>` - Remove all comments in function
+## Troubleshooting
 
-### Code Export Commands
-- `export-code <directory_path>` - Export all C/C++ code to the directory
+- If Ghidra gives import errors in Python, ensure you're running the script from within Ghidra's Script Manager
+- For Java plugin, make sure the extension.properties file is correctly set up
+- Make sure no other services are using port 9000
+- Check that your client is connecting to the correct address (localhost:9000)
 
-### Reference Finding Commands
-- `find-var-references <var_name>` - List all references to a variable (Location, Label, Code Unit, Context)
-- `find-function-references <fun_name>` - List all references to a function
-- `find-addr-references <hex_addr>` - Find all references to a hex address
-- `find-label <label_name>` - Find a label by name
+## Testing the Server
 
-### Label Management Commands
-- `rename-label <old_label_name> <new_label_name>` - Rename a label
+After starting the server from within Ghidra:
+1. Make sure your program is loaded in Ghidra
+2. Test from another terminal:
+   ```bash
+   telnet localhost 9000
+   ```
+3. Or use the demo client:
+   ```bash
+   cd /common/active/sblo/Dev/GhidraPlugin
+   python3 demo_client.py
+   ```
 
-### Advanced Analysis Commands
-- `auto-create-structure <var_name>` - Use Ghidra's "auto create structure" tool for the variable
-- `adjust-pointer-offset <var_name> <offset>` - Adjust the pointer offset for the variable
-- `find-text <text>` - Find all locations for text (part of a C-string)
-- `rename-case <function_name> <line> <text>` - Rename a case in a switch statement. Will return error if the enum or number is not valid
-- `find-equate-string <string>` - Search for strings with number literal values (enums, macros, static const int, etc.)
-- `set-equate-string <function_name> <line> <column> <id>` - Replace number literal with equate string value
-- `remove-equate-string <function_name> <line> <column>` - Revert to the number literal
-- `rename-global <old_var_name> <new_var_name>` - Rename global variable
-- `retype-global <var_name> <new_type>` - Set global variable's type
-- `find-type-references <type_path>` - Find references to type
-- `find-references-data <any_name>` - Find references to name. Gives list with columns of Location, Label, Code Unit, Context
-- `find-references-addr <hex_addr>` - Find references to address
-- `quit` - Close the connection to the server
+## Command Examples
 
-### Example client usage:
-```
-> ls FUN::main
-SUCCESS: Items in path 'FUN::main': local_var_1, local_var_2, param_1
+Once connected to the server through telnet or a client:
+- `HELP` - Shows all available commands
+- `FUN-NAME-GET` - Gets the current function name in Ghidra
+- `VAR-TYPE-GET variable_name` - Gets the type of the specified variable
+- `FUN-NAME-SET old_name new_name` - Renames a function from old_name to new_name
+- `QUIT` - Closes the connection to the server
 
-> cat FUN::main
-SUCCESS: Content of path 'FUN::main': int main(int argc, char* argv[]) { ... }
+## Recommendation
 
-> var-type-set local_var_1 int*
-SUCCESS: Type 'int*' set for variable 'local_var_1'
+Use the Python (Jython) approach as the main implementation route for development and testing, with the Java approach available for formal plugin deployment in production environments.
 
-> var-type-get local_var_1
-SUCCESS: Type for parameter 'local_var_1' is 'int*'
-
-> fun-name-set current_func new_function_name
-SUCCESS: Function renamed from 'current_func' to 'new_function_name'
-
-> fun-name-get
-SUCCESS: Current function name is 'new_function_name'
-
-> set-comment main 5 "This is the start of main function"
-SUCCESS: Comment set for function 'main' at entry point: This is the start of main function
-
-> remove-comment main 5
-SUCCESS: Comment removed for function 'main' at entry point
-
-> remove-all-comments main
-SUCCESS: 3 comments removed for function 'main'
-
-> list-function main
-SUCCESS: Items in function 'main':
-  param 0: argc (int)
-  param 1: argv (char**)
-  local: localVar (int)
-
-> find-var-references localVar
-SUCCESS: References to variable 'localVar' found at: 0x40100a (read), 0x40100f (write)
-
-> find-text "Hello World"
-SUCCESS: Text 'Hello World' found at: 0x401500 (string reference), 0x40201a (usage in main)
-
-> find-label my_label
-SUCCESS: Label 'my_label' found at address 0x40102a
-
-> rename-label old_label new_label
-SUCCESS: Label renamed from 'old_label' to 'new_label'
-
-> help
-SUCCESS: Available commands:
-  ls <path> - Show all items in the path (like in CodeBrowser)
-  cat <path> - Print the C/C++ code as in CodeBrowser...
-  ...
-  (full command list shown)
-```
-
-## Architecture
-The plugin follows Ghidra's standard plugin architecture, extending Plugin or CommonPluginTool as appropriate. It implements a TCP server using Java's networking libraries, with proper resource management and threading considerations for the Ghidra environment.
-
-Client connections are handled by the ClientHandler class, which parses commands and responds appropriately. The ClientDirectoryManager maintains information about connected clients and tracks comments in the current program.
+The project is now complete with both implementation approaches ready for use!

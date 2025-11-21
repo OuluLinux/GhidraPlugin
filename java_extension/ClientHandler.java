@@ -1,11 +1,30 @@
 import java.io.*;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.Pattern;
 
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.program.model.listing.Program;
 import ghidra.util.Msg;
+
+// Additional imports needed for Ghidra API
+import ghidra.program.model.listing.*;
+import ghidra.program.model.symbol.*;
+import ghidra.program.model.address.*;
+import ghidra.program.model.data.*;
+import ghidra.program.model.util.*;
+import ghidra.program.model.mem.*;
+import ghidra.program.model.lang.*;
+import ghidra.program.model.pcode.*;
+import ghidra.program.flatapi.*;
+import ghidra.util.exception.*;
+import ghidra.util.task.*;
+import ghidra.app.cmd.comments.*;
+import ghidra.app.cmd.function.*;
+import ghidra.app.decompiler.*;
+/* Removed - Location import causing issues */
+import ghidra.program.database.*;
+import ghidra.framework.model.DomainObject;
 
 /**
  * Enhanced client handler that can process commands from TCP clients
@@ -366,7 +385,7 @@ public class ClientHandler implements Runnable {
 			Iterator<Symbol> symbols = symTable.getSymbols(varName);
 			while (symbols.hasNext()) {
 				Symbol sym = symbols.next();
-				if (sym.getSymbolType() == SymbolType.DATA) {
+				if (sym.getSymbolType() == SymbolType.LABEL) {
 					// In a real implementation, you would create a proper datatype and assign it
 					return "SUCCESS: Global variable '" + varName + "' type set to '" + type + "'";
 				}
@@ -423,7 +442,7 @@ public class ClientHandler implements Runnable {
 			Iterator<Symbol> symbols = symTable.getSymbols(varName);
 			while (symbols.hasNext()) {
 				Symbol sym = symbols.next();
-				if (sym.getSymbolType() == SymbolType.DATA) {
+				if (sym.getSymbolType() == SymbolType.LABEL) {
 					return "SUCCESS: Type for global variable '" + varName + "' is 'unknown' (implementation needed)";
 				}
 			}
@@ -459,7 +478,7 @@ public class ClientHandler implements Runnable {
 
 			// Find and rename the function
 			FunctionManager funcMgr = currentProgram.getFunctionManager();
-			Function func = funcMgr.getFunctionNamed(oldName);
+			Function func = ((Function) findFunctionByName(funcMgr, oldName));
 
 			if (func != null) {
 				try {
@@ -562,7 +581,7 @@ public class ClientHandler implements Runnable {
 			Iterator<Symbol> symbols = symTable.getSymbols(oldName);
 			while (symbols.hasNext()) {
 				Symbol sym = symbols.next();
-				if (sym.getSymbolType() == SymbolType.DATA) {
+				if (sym.getSymbolType() == SymbolType.LABEL) {
 					try {
 						sym.setName(newName, SourceType.USER_DEFINED);
 						return "SUCCESS: Global variable renamed from '" + oldName + "' to '" + newName + "'";
@@ -601,7 +620,7 @@ public class ClientHandler implements Runnable {
 
 			// Find the function and list its contents
 			FunctionManager funcMgr = currentProgram.getFunctionManager();
-			Function func = funcMgr.getFunctionNamed(funName);
+			Function func = ((Function) findFunctionByName(funcMgr, funName));
 
 			if (func != null) {
 				StringBuilder result = new StringBuilder("Items in function '" + funName + "':\n");
@@ -661,7 +680,7 @@ public class ClientHandler implements Runnable {
 				Iterator<Symbol> symbols = symTable.getSymbols(cls);
 				while (symbols.hasNext()) {
 					Symbol sym = symbols.next();
-					result.append("  ").append(sym.getName()).append(" (").append(sym.getSymbolType().name()).append(")\n");
+					result.append("  ").append(sym.getName()).append(" (").append(sym.getSymbolType().toString()).append(")\n");
 				}
 
 				return "SUCCESS: " + result.toString().trim();
@@ -705,7 +724,7 @@ public class ClientHandler implements Runnable {
 				Iterator<Symbol> symbols = symTable.getSymbols(ns);
 				while (symbols.hasNext()) {
 					Symbol sym = symbols.next();
-					result.append("  ").append(sym.getName()).append(" (").append(sym.getSymbolType().name()).append(")\n");
+					result.append("  ").append(sym.getName()).append(" (").append(sym.getSymbolType().toString()).append(")\n");
 				}
 
 				return "SUCCESS: " + result.toString().trim();
@@ -743,7 +762,7 @@ public class ClientHandler implements Runnable {
 
 			// Find the function and set a comment at the specified location
 			FunctionManager funcMgr = currentProgram.getFunctionManager();
-			Function func = funcMgr.getFunctionNamed(funName);
+			Function func = ((Function) findFunctionByName(funcMgr, funName));
 
 			if (func != null) {
 				// Note: In a real implementation, line numbers don't directly map to Ghidra addresses
@@ -795,7 +814,7 @@ public class ClientHandler implements Runnable {
 
 			// Find the function and remove a comment at the specified location
 			FunctionManager funcMgr = currentProgram.getFunctionManager();
-			Function func = funcMgr.getFunctionNamed(funName);
+			Function func = ((Function) findFunctionByName(funcMgr, funName));
 
 			if (func != null) {
 				// Note: In a real implementation, line numbers don't directly map to Ghidra addresses
@@ -845,7 +864,7 @@ public class ClientHandler implements Runnable {
 
 			// Find the function and remove all comments in it
 			FunctionManager funcMgr = currentProgram.getFunctionManager();
-			Function func = funcMgr.getFunctionNamed(funName);
+			Function func = ((Function) findFunctionByName(funcMgr, funName));
 
 			if (func != null) {
 				try {
@@ -1271,7 +1290,7 @@ public class ClientHandler implements Runnable {
 
 			while (symbols.hasNext()) {
 				Symbol sym = symbols.next();
-				if (sym.getSymbolType() == SymbolType.DATA && sym.getParentNamespace() == null) {
+				if (sym.getSymbolType() == SymbolType.LABEL && sym.getParentNamespace() == null) {
 					// This is a global variable
 					try {
 						sym.setName(newName, SourceType.USER_DEFINED);
@@ -1317,7 +1336,7 @@ public class ClientHandler implements Runnable {
 
 			while (symbols.hasNext()) {
 				Symbol sym = symbols.next();
-				if (sym.getSymbolType() == SymbolType.DATA && sym.getParentNamespace() == null) {
+				if (sym.getSymbolType() == SymbolType.LABEL && sym.getParentNamespace() == null) {
 					// This is a global variable
 					// In a real implementation, we would change the data type of the variable
 					return "SUCCESS: Type of global variable '" + varName + "' changed to '" + newType + "'";
@@ -1413,4 +1432,18 @@ public class ClientHandler implements Runnable {
 			return "SUCCESS: References to address '" + hexAddr + "' found at: ... (implementation needed)";
 		}
 	}
+    /**
+     * Helper method to find a function by its name in the current program
+     * @param funcMgr The function manager to search in
+     * @param name The name of the function to find
+     * @return The Function with the given name, or null if not found
+     */
+    private static Function findFunctionByName(FunctionManager funcMgr, String name) {
+        for (Function func : funcMgr.getFunctions(true)) {
+            if (func.getName().equals(name)) {
+                return func;
+            }
+        }
+        return null;
+    }
 }

@@ -1,69 +1,96 @@
 #!/bin/bash
 
-# Build and install Ghidra plugin script
+# Build script for GhidraTCPCommentingPlugin
 
-# Configuration
-GHIDRA_DIR="$HOME/xtra/linux/Ohjelmat/ghidra_11.4.2_PUBLIC"
-PLUGIN_NAME="GhidraTCPCommentingPlugin"
-PLUGIN_DIR="$GHIDRA_DIR/Ghidra/Extensions/$PLUGIN_NAME"
-
-# Colors for output
+# Define colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${YELLOW}Building and installing $PLUGIN_NAME...${NC}"
+echo -e "${YELLOW}Building GhidraTCPCommentingPlugin...${NC}"
 
-# Check if Gradle is available
-if ! command -v gradle &> /dev/null; then
-    echo -e "${RED}Error: Gradle is not installed or not in PATH${NC}"
+# Check if the source directory exists
+if [ ! -d "./src/main/java" ]; then
+    echo -e "${RED}Error: Source directory './src/main/java' does not exist${NC}"
     exit 1
 fi
 
-# Check if Ghidra directory exists
-if [ ! -d "$GHIDRA_DIR" ]; then
-    echo -e "${RED}Error: Ghidra directory does not exist: $GHIDRA_DIR${NC}"
+# Check if built Ghidra distribution exists
+GHIDRA_BUILT_PATH="./ghidra-Ghidra_11.4.2_build/build/dist/ghidra_11.4.2_DEV"
+if [ ! -d "$GHIDRA_BUILT_PATH" ]; then
+    echo -e "${RED}Error: Built Ghidra distribution not found at $GHIDRA_BUILT_PATH${NC}"
     exit 1
 fi
 
-# Build the plugin
-echo -e "${YELLOW}Building the plugin...${NC}"
-if ./gradlew build -Pghidra.install.dir="$GHIDRA_DIR"; then
-    echo -e "${GREEN}Plugin built successfully!${NC}"
+echo -e "${YELLOW}Setting up classpath with built Ghidra JARs...${NC}"
+
+# Build the classpath with all required Ghidra JARs
+CLASSPATH="."
+for jar in $(find $GHIDRA_BUILT_PATH -name "*.jar" | grep -E "(Framework|SoftwareModeling|Base|Docking|GUI|DB|Generic|Utility|Project|FileSystem|Graph|Emulation|Help|Code|Decompiler|Program|Application|FlatLaf|Log4j|Commons|JDom|Jna|Bcprov|Guava|JGraphT|Jung|Jackson|Jettison|JCommander|JLine|JOpt|Jsch|Jython|Jzlib|Logback|Slf4j|Xalan|Xerces|XmlResolver|Annotations|ASM|Antlr|Apache|Google|Jsr|Hamcrest|Junit|Mockito|Objenesis|Bytebuddy|Javax|Jdk|Netty|Protobuf)") 
+do
+    CLASSPATH="$CLASSPATH:$jar"
+done
+
+echo -e "${YELLOW}Compiling Java source files...${NC}"
+
+# Create the build directory
+rm -rf build
+mkdir -p build/classes
+
+# Find all .java files
+JAVA_FILES=$(find src/main/java -name "*.java")
+
+if [ -z "$JAVA_FILES" ]; then
+    echo -e "${RED}Error: No Java source files found${NC}"
+    exit 1
+fi
+
+echo "Found Java files: $JAVA_FILES"
+
+# Compile the Java files
+if javac -cp "$CLASSPATH" -source 11 -target 11 -d build/classes $JAVA_FILES; then
+    echo -e "${GREEN}Compilation successful!${NC}"
+    
+    # Create the JAR file
+    cd build/classes
+    jar cf ../GhidraTCPCommentingPlugin.jar .
+    cd ../..
+
+    echo -e "${GREEN}JAR file created at build/GhidraTCPCommentingPlugin.jar${NC}"
+    
+    # If Ghidra installation exists, install the plugin there
+    GHIDRA_INSTALL_DIR="$HOME/xtra/linux/Ohjelmat/ghidra_11.4.2_PUBLIC"
+    if [ -d "$GHIDRA_INSTALL_DIR/Ghidra/Extensions" ]; then
+        PLUGIN_INSTALL_DIR="$GHIDRA_INSTALL_DIR/Ghidra/Extensions/GhidraTCPCommentingPlugin"
+        mkdir -p "$PLUGIN_INSTALL_DIR"
+        
+        cp build/GhidraTCPCommentingPlugin.jar "$PLUGIN_INSTALL_DIR/"
+        echo -e "${GREEN}Plugin installed to $PLUGIN_INSTALL_DIR${NC}"
+        
+        # Create a basic module info file
+        cat > "$PLUGIN_INSTALL_DIR/GhidraModule.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<moduleMetadata>
+    <moduleType>Extension</moduleType>
+    <name>GhidraTCPCommentingPlugin</name>
+    <version>1.0.0</version>
+    <description>Provides TCP server functionality for client communication with Ghidra</description>
+    <createdOn>2025-11-20</createdOn>
+    <pluginClassNames>
+        <className>GhidraTCPCommentingPlugin</className>
+    </pluginClassNames>
+</moduleMetadata>
+EOF
+        
+        echo -e "${GREEN}Module metadata created at $PLUGIN_INSTALL_DIR/GhidraModule.xml${NC}"
+    else
+        echo -e "${YELLOW}Ghidra installation directory not found. Plugin JAR created but not installed.${NC}"
+    fi
+
+    echo -e "${GREEN}Build completed successfully!${NC}"
 else
-    echo -e "${RED}Error: Failed to build plugin${NC}"
+    echo -e "${RED}Compilation failed${NC}"
+    echo -e "${YELLOW}Classpath used: $CLASSPATH${NC}"
     exit 1
-fi
-
-# Create plugin directory if it doesn't exist
-mkdir -p "$PLUGIN_DIR"
-
-# Copy the built plugin to Ghidra's Extensions directory
-echo -e "${YELLOW}Installing plugin to Ghidra...${NC}"
-cp -r dist/* "$PLUGIN_DIR/" 2>/dev/null || echo "No dist directory found, copying JAR files"
-
-# Copy JAR files from build/libs if they exist
-if [ -d "build/libs" ]; then
-    cp build/libs/*.jar "$PLUGIN_DIR/"
-    echo -e "${GREEN}JAR files copied to $PLUGIN_DIR${NC}"
-else
-    echo -e "${YELLOW}No JAR files found in build/libs${NC}"
-fi
-
-# Copy any dependencies if they exist
-if [ -d "lib" ]; then
-    cp -r lib/* "$PLUGIN_DIR/" 2>/dev/null || echo "No lib directory or it's empty"
-fi
-
-# Copy configuration files
-cp -r lib "$PLUGIN_DIR/" 2>/dev/null || echo "No lib directory to copy"
-
-echo -e "${GREEN}Plugin installed successfully!${NC}"
-echo -e "${GREEN}Plugin location: $PLUGIN_DIR${NC}"
-echo -e "${YELLOW}Please restart Ghidra to load the new plugin.${NC}"
-
-# Check if Ghidra is currently running and warn the user
-if pgrep -f "ghidra.*.jar" > /dev/null; then
-    echo -e "${YELLOW}Warning: Ghidra appears to be running. Please restart Ghidra to load the new plugin.${NC}"
 fi

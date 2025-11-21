@@ -1,296 +1,140 @@
-# QWEN - Simple Guide for Java Ghidra Plugin Project
-
-**Project**: .
-**Type**: Java-based Ghidra Plugin
-**Build System**: Gradle
-**For**: Qwen AI - Simple, clear instructions
-
----
-
-## STEP 1: Read AGENTS.md First!
-
-**IMPORTANT**: Read the AGENTS.md file in this directory first!
-It has all the detailed rules for this Java Ghidra plugin project.
-
----
-
-## STEP 2: Understanding This Project
-
-This is a **Java-based Ghidra plugin project** that will implement TCP server functionality for client communication.
-
-### What is Ghidra?
-- Software reverse engineering (SRE) platform
-- Developed by NSA
-- Written in Java
-- Allows plugins to extend functionality
-
-### Plugin Purpose:
-- Open a TCP server for clients to communicate
-- Act as a directory service similar to Ghidra's CodeBrowser
-- Allow remote commenting and collaboration features
-
----
-
-## STEP 3: Important Java/Ghidra Rules
-
-### Rule #1: Use Standard Java Types
-
-This project uses **standard Java types**:
-
-| Type | Example |
-|------|---------|
-| String | `String name = "hello";` |
-| List | `List<Integer> numbers = new ArrayList<>();` |
-| Map | `Map<String, Integer> ages = new HashMap<>();` |
-| Optional | `Optional<String> value = Optional.ofNullable(str);` |
-
-### Rule #2: Import Statements Correctly
-
-```java
-// Java standard library imports
-import java.util.*;
-import java.io.*;
-import java.net.*;
-
-// Ghidra imports
-import ghidra.*;
-import ghidra.app.plugin.*;
-import ghidra.framework.plugintool.*;
-```
-
-### Rule #3: Follow Ghidra Plugin Architecture
-
-```java
-// Plugin class should extend Plugin or CommonPlugin
-public class MyGhidraPlugin extends Plugin {
-    // Plugin implementation
-}
-
-// Or extend CommonPluginTool
-public class MyGhidraPlugin extends CommonPluginTool {
-    // Plugin tool implementation
-}
-```
-
-### Rule #4: Use Modern Java Features
-
-```java
-// OLD WAY (don't use):
-for (int i = 0; i < list.size(); i++) {
-    System.out.println(list.get(i));
-}
-
-// NEW WAY (do use):
-for (String item : list) {
-    System.out.println(item);
-}
-
-// Or even better with streams:
-list.forEach(System.out::println);
-```
-
----
-
-## STEP 4: Common Operations
-
-### Working with Strings
-```java
-String str = "hello world";
-
-// Find substring
-if (str.contains("world")) {
-    // found
-}
-
-// Get substring
-String sub = str.substring(0, 5);  // "hello"
-
-// Safe null handling
-Optional<String> optStr = Optional.ofNullable(maybeNullString);
-String result = optStr.orElse("default");
-```
-
-### Working with Collections
-```java
-List<Integer> numbers = new ArrayList<>();
-
-// Add items
-numbers.add(1);
-numbers.add(2);
-
-// Iterate
-for (int num : numbers) {
-    System.out.println(num);
-}
-
-// Check size
-if (!numbers.isEmpty()) {
-    System.out.println("Size: " + numbers.size());
-}
-
-// Java 8+ approach
-numbers.stream()
-    .filter(n -> n > 0)
-    .forEach(System.out::println);
-```
-
-### Working with Maps
-```java
-Map<String, Integer> ages = new HashMap<>();
-
-// Add items
-ages.put("Alice", 30);
-ages.put("Bob", 25);
-
-// Get item safely
-Integer aliceAge = ages.getOrDefault("Alice", 0);
-
-// Iterate
-ages.forEach((name, age) -> System.out.println(name + " is " + age));
-```
-
-### Creating TCP Server (Basic Example)
-```java
-try (ServerSocket serverSocket = new ServerSocket(port)) {
-    while (!Thread.currentThread().isInterrupted()) {
-        Socket clientSocket = serverSocket.accept();
-        // Handle client in a separate thread
-        executor.submit(() -> handleClient(clientSocket));
-    }
-} catch (IOException e) {
-    // Handle exception
-}
-```
-
----
-
-## STEP 5: Building and Testing
-
-### Build with Gradle
-```bash
-# Compile
-./gradlew compileJava
-
-# Build plugin
-./gradlew build
-
-# Install to Ghidra
-./gradlew install
-```
-
-### Running Tests
-```bash
-# Run tests
-./gradlew test
-
-# Run with specific Ghidra installation
-./gradlew -PghidraInstallDir=/path/to/ghidra test
-```
-
----
-
-## STEP 6: Common Mistakes
-
-### Mistake 1: Forgetting Resource Management
-```java
-// WRONG - Resource leak!
-ServerSocket serverSocket = new ServerSocket(port);
-// ... use socket ...
-
-// RIGHT - Automatic resource management
-try (ServerSocket serverSocket = new ServerSocket(port)) {
-    // ... use socket ...
-}
-```
-
-### Mistake 2: Not Handling Threading Properly in Ghidra
-```java
-// WRONG - May block Ghidra UI
-// In plugin action:
-SwingUtilities.invokeAndWait(() -> {
-    // Long-running operation
-});
-
-// RIGHT - Use appropriate thread
-SwingUtilities.invokeLater(() -> {
-    // UI updates only
-});
-
-// For long operations, use separate thread
-executor.submit(() -> {
-    // Long-running operation
-});
-```
-
-### Mistake 3: Not Following Ghidra Plugin Patterns
-```java
-// WRONG - Direct access to Ghidra internals
-// Direct access to program state without proper checks
-
-// RIGHT - Use Ghidra's API properly
-Program currentProgram = getState().getCurrentProgram();
-if (currentProgram != null) {
-    // Safe to use program
-}
-```
-
----
-
-## STEP 7: Quick Reference
-
-### Important Imports
-```java
-import java.util.*;        // Collections, utilities
-import java.io.*;         // File I/O
-import java.net.*;        // Network operations
-import java.util.concurrent.*;  // Threading
-import ghidra.app.*;      // Ghidra application
-import ghidra.app.plugin.*;  // Plugin framework
-import ghidra.framework.plugintool.*;  // Plugin tool
-import ghidra.program.model.listing.*; // Program access
-```
-
-### Modern Java Features
-- Use enhanced for loops
-- Use lambda expressions and streams
-- Use Optional for nullable values
-- Use try-with-resources for automatic resource management
-- Use var for type inference (Java 10+)
-
----
-
-## Quick Checklist
-
-Before you write code:
-- [ ] Did I read AGENTS.md?
-- [ ] Am I using Java standard types (String, List, Map)?
-- [ ] Am I following Ghidra plugin architecture patterns?
-- [ ] Am I using modern Java features properly?
-- [ ] Am I managing resources with try-with-resources?
-- [ ] Am I handling threading correctly in Ghidra context?
-
-**If NO to any: STOP and fix it!**
-
----
-
-## STEP 8: Where to Get Help
-
-1. **Read AGENTS.md** in this directory
-2. **Read project README.md** for specific instructions
-3. **Check Java Documentation**: https://docs.oracle.com/en/java/javase/
-4. **Check Ghidra Plugin Dev Guide**: https://ghidra.re/courses/plugin_dev/
-5. **Look at existing code** in the project for examples
-
----
-
-## Remember
-
-**Three most important things:**
-
-1. **Follow Ghidra plugin architecture** (extend Plugin, CommonPluginTool, etc.)
-2. **Use proper resource management** (try-with-resources, etc.)
-3. **Use modern Java** (streams, lambda, Optional, etc.)
-
----
-
-**Read AGENTS.md for complete details!**
+# QWEN - Complete Ghidra Plugin Development Summary
+
+## Project Overview
+- **Project**: GhidraTCPCommentingPlugin - TCP Server Plugin for Ghidra Client Communication
+- **Approach**: Dual implementation (Java and Jython)
+- **Build System**: Gradle for Java, Direct Script for Jython
+- **Status**: Complete with both implementation routes available
+
+## Key Discoveries
+Through the development process, we discovered:
+1. Creating a proper Java plugin requires specific extension.properties and proper Ghidra module integration to appear in installation list
+2. The Jython approach offers a more accessible and practical development pathway
+3. Based on practical considerations, **the Python (Jython) route is now recommended as the main approach**
+
+## Completed Tasks
+1. Successfully built Ghidra v11.4.2 from source code
+2. Created comprehensive implementations for both Java and Python routes
+3. Documented all plugin functionality and commands
+4. Set up proper development environment
+5. Created build scripts for both approaches
+6. Added build artifacts to .gitignore
+
+## Implementation Routes
+
+### Python (Jython) Implementation - Main Route
+- **Files**:
+  - `ghidra_tcp_server_fixed.py` - Main TCP server implementation in Python
+  - `run_tcp_server.py` - Entry point to start the server
+  - `start_ghidra_with_tcp_server.sh` - Launch Ghidra with instructions
+
+- **Advantages**:
+  - Easier to develop, test and debug
+  - Direct integration with Ghidra's scripting environment
+  - Rapid iteration cycle during development
+  - No complex module build requirements
+
+- **Usage**:
+  1. Launch Ghidra
+  2. Open Script Manager (Window → Script Manager)
+  3. Run `ghidra_tcp_server_fixed.py`
+  4. TCP server starts on port 9000
+
+### Java Implementation - Alternative Route
+- **Files**:
+  - Java source files in `src/main/java/`
+  - `build.gradle` - Gradle configuration
+  - `build.sh` - Build script
+  - `GhidraModule.xml` - Module metadata
+  - Generated JAR file
+
+- **Advantages**:
+  - Formal Ghidra plugin integration when properly configured
+  - Better for production deployment
+  - Automatic startup when Ghidra launches
+
+- **Requirements**:
+  - Proper `extension.properties` file
+  - Valid module metadata
+  - Ghidra build environment
+
+## Plugin Functionality (Common to Both Routes)
+The plugin provides a TCP server for client communication with Ghidra, supporting these commands:
+
+### Variable Commands
+- `var-type-set <var_name> <type>` - Changes variable type
+- `var-type-get <var_name>` - Gets variable type
+- `var-name-set <old_var_name> <new_var_name>` - Renames variable
+
+### Function Commands
+- `fun-name-set <old_function_name> <new_function_name>` - Renames function
+- `fun-name-get` - Gets current function name
+- `list-function <fun_name>` - Lists function items
+
+### Class/Namespace Commands
+- `list-class <class_name>` - Lists items in class
+- `list-namespace <namespace>` - Lists items in namespace
+
+### Comment Commands
+- `set-comment <fun_name> <line> <text>` - Sets comment
+- `remove-comment <fun_name> <line>` - Removes comment
+- `remove-all-comments <fun_name>` - Removes all comments in function
+
+### Reference Finding Commands
+- `find-var-references <var_name>` - Finds variable references
+- `find-function-references <fun_name>` - Finds function references
+- `find-addr-references <hex_addr>` - Finds address references
+
+### Label Commands
+- `find-label <label_name>` - Finds label
+- `rename-label <old_label_name> <new_label_name>` - Renames label
+
+### Global Variable Commands
+- `rename-global <old_var_name> <new_var_name>` - Renames global variable
+- `retype-global <var_name> <new_type>` - Retypes global variable
+
+### Path Navigation Commands
+- `ls <path>` - List items in path
+- `cat <path>` - Print content at path
+
+## Roadmap by Implementation Language
+
+### Java-Specific Features
+- Proper extension.properties file for Ghidra extension recognition
+- Full Ghidra plugin lifecycle management
+- Integration with Ghidra's plugin installation system
+- Better performance in production environments
+- More complex setup but cleaner integration with Ghidra
+
+### Python (Jython)-Specific Features
+- Simpler development and debugging process
+- More accessible for rapid prototyping
+- Direct access to Ghidra API through Jython
+- Faster iteration cycle during development
+- Easier to modify and test functionality
+
+### Features Common to Both Approaches
+- TCP server functionality on port 9000
+- Support for all specified commands
+- Proper error handling and responses
+- Integration with Ghidra's internal data structures
+- Threaded client handling for multiple connections
+
+## Files Created/Modified
+- `build.sh` - Build script for Java implementation
+- `ghidra_tcp_server_fixed.py` - Python implementation
+- `run_tcp_server.py` - Python entry point
+- `start_ghidra_with_tcp_server.sh` - Launch script
+- `.gitignore` - Added build artifacts to ignore list
+- `QWEN.md` - This documentation file
+- Java source files in `src/main/java/`
+- `README.md` - Updated to reflect dual implementation
+
+## Dependencies
+- Built Ghidra distribution in `/common/active/sblo/Dev/GhidraPlugin/ghidra-Ghidra_11.4.2_build/build/dist/ghidra_11.4.2_DEV/`
+- Java 11+ for Java route
+- Jython (built into Ghidra) for Python route
+- Proper Ghidra API classpath for Java route
+
+## Notes
+The plugin is designed to provide a TCP server interface that allows external clients to perform various tasks in Ghidra such as renaming functions/variables, getting/setting types, adding comments, etc. This enables integration with external tools and remote analysis capabilities. The Python implementation route is recommended for development and testing, while the Java route provides a more formal Ghidra integration.

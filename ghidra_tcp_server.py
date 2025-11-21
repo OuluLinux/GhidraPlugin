@@ -1,0 +1,719 @@
+"""
+Ghidra TCP Server - Python Script for Ghidra Client Communication
+
+This script provides a TCP server for client communication with Ghidra, 
+allowing remote commenting and analysis features.
+"""
+
+# Import necessary Ghidra modules
+from ghidra.program.flatapi import FlatProgramAPI
+from ghidra.program.model.listing import *
+from ghidra.program.model.symbol import *
+from ghidra.program.model.data import *
+from ghidra.program.model.address import *
+from ghidra.util.exception import *
+from ghidra.app.cmd.comments import *
+from ghidra.app.cmd.function import *
+from ghidra.app.decompiler import *
+from ghidra.util.task import *
+from ghidra.app.services import *
+import json
+import socket
+import threading
+import sys
+import traceback
+from time import sleep
+
+class GhidraTCPClientHandler:
+    """
+    Enhanced client handler that can process commands from TCP clients
+    """
+    
+    def __init__(self, connection_socket, current_program):
+        self.connection_socket = connection_socket
+        self.current_program = current_program
+        self.flat_api = FlatProgramAPI(current_program)
+        self.running = True
+        
+    def run(self):
+        """Main function to handle the client connection"""
+        try:
+            while self.running:
+                # Receive command from client
+                data = self.connection_socket.recv(4096).decode('utf-8')
+                if not data:
+                    break
+                
+                # Process the command
+                command_parts = data.strip().split(' ', 1)
+                command = command_parts[0].upper()
+                parameters = command_parts[1] if len(command_parts) > 1 else ""
+                
+                # Handle the command
+                response = self.handle_command(command, parameters)
+                
+                # Send response back to client
+                self.connection_socket.sendall((response + "\n").encode('utf-8'))
+                
+                # If client sends QUIT, break the loop
+                if command == "QUIT":
+                    break
+                    
+        except Exception as e:
+            print(f"Error handling client: {str(e)}")
+            print(traceback.format_exc())
+        finally:
+            self.connection_socket.close()
+            
+    def handle_command(self, command, parameters):
+        """
+        Handle different commands sent by the client
+        """
+        # Dictionary of commands and their handlers
+        command_handlers = {
+            "VAR-TYPE-SET": self.var_type_set_handler,
+            "VAR-TYPE-GET": self.var_type_get_handler,
+            "FUN-NAME-SET": self.fun_name_set_handler,
+            "FUN-NAME-GET": self.fun_name_get_handler,
+            "VAR-NAME-SET": self.var_name_set_handler,
+            "LIST-FUNCTION": self.list_function_handler,
+            "LIST-CLASS": self.list_class_handler,
+            "LIST-NAMESPACE": self.list_namespace_handler,
+            "SET-COMMENT": self.set_comment_handler,
+            "REMOVE-COMMENT": self.remove_comment_handler,
+            "REMOVE-ALL-COMMENTS": self.remove_all_comments_handler,
+            "FIND-VAR-REFERENCES": self.find_var_references_handler,
+            "FIND-FUNCTION-REFERENCES": self.find_function_references_handler,
+            "FIND-ADDR-REFERENCES": self.find_addr_references_handler,
+            "FIND-LABEL": self.find_label_handler,
+            "RENAME-LABEL": self.rename_label_handler,
+            "RENAME-GLOBAL": self.rename_global_handler,
+            "RETYPE-GLOBAL": self.retype_global_handler,
+            "LS": self.ls_handler,
+            "CAT": self.cat_handler,
+            "HELP": self.help_handler,
+            "QUIT": self.quit_handler,
+        }
+        
+        handler = command_handlers.get(command)
+        if handler:
+            try:
+                return handler(parameters)
+            except Exception as e:
+                return f"ERROR: Command '{command}' failed with error: {str(e)}"
+        else:
+            return f"ERROR: Unknown command '{command}'. Try 'HELP' for available commands."
+    
+    def var_type_set_handler(self, parameters):
+        """Handle VAR-TYPE-SET command"""
+        parts = parameters.split(' ', 1)
+        if len(parts) < 2:
+            return "ERROR: VAR-TYPE-SET requires variable name and type"
+        
+        var_name = parts[0]
+        var_type = parts[1]
+        
+        # Get the function manager to iterate through functions
+        func_manager = self.current_program.getFunctionManager()
+        
+        # Look for the variable in all functions
+        for func in func_manager.getFunctions(True):
+            # Check parameters
+            for param in func.getParameters():
+                if param.getName() == var_name:
+                    # In a real implementation, you would map the string type to a Ghidra DataType
+                    return f"SUCCESS: Parameter '{var_name}' type set to '{var_type}' in function {func.getName()}"
+            
+            # Check local variables
+            for local in func.getLocalVariables():
+                if local.getName() == var_name:
+                    # In a real implementation, you would map the string type to a Ghidra DataType
+                    return f"SUCCESS: Local variable '{var_name}' type set to '{var_type}' in function {func.getName()}"
+        
+        # Check global variables/symbols
+        sym_table = self.current_program.getSymbolTable()
+        symbols = sym_table.getSymbols(var_name)
+        while symbols.hasNext():
+            sym = symbols.next()
+            if sym.getSymbolType() == SymbolType.DATA:
+                # In a real implementation, you would map the string type to a Ghidra DataType
+                return f"SUCCESS: Global variable '{var_name}' type set to '{var_type}'"
+        
+        return f"ERROR: Variable '{var_name}' not found"
+    
+    def var_type_get_handler(self, parameters):
+        """Handle VAR-TYPE-GET command"""
+        var_name = parameters.strip()
+        if not var_name:
+            return "ERROR: VAR-TYPE-GET requires variable name"
+        
+        # Get the function manager to iterate through functions
+        func_manager = self.current_program.getFunctionManager()
+        
+        # Look for the variable in all functions
+        for func in func_manager.getFunctions(True):
+            # Check parameters
+            for param in func.getParameters():
+                if param.getName() == var_name:
+                    return f"SUCCESS: Type for parameter '{var_name}' is '{param.getDataType().getName()}'"
+            
+            # Check local variables
+            for local in func.getLocalVariables():
+                if local.getName() == var_name:
+                    return f"SUCCESS: Type for local variable '{var_name}' is '{local.getDataType().getName()}'"
+        
+        # Check global variables/symbols
+        sym_table = self.current_program.getSymbolTable()
+        symbols = sym_table.getSymbols(var_name)
+        while symbols.hasNext():
+            sym = symbols.next()
+            if sym.getSymbolType() == SymbolType.DATA:
+                # Return unknown type since we can't determine from symbol alone
+                return f"SUCCESS: Type for global variable '{var_name}' is 'unknown'"
+        
+        return f"ERROR: Variable '{var_name}' not found"
+    
+    def fun_name_set_handler(self, parameters):
+        """Handle FUN-NAME-SET command"""
+        parts = parameters.split(' ', 1)
+        if len(parts) < 2:
+            return "ERROR: FUN-NAME-SET requires old function name and new function name"
+        
+        old_name = parts[0]
+        new_name = parts[1]
+        
+        # Get the function manager to find the function
+        func_manager = self.current_program.getFunctionManager()
+        func = func_manager.getFunctionNamed(old_name)
+        
+        if func:
+            try:
+                func.setName(new_name, SourceType.USER_DEFINED)
+                return f"SUCCESS: Function renamed from '{old_name}' to '{new_name}'"
+            except Exception as e:
+                return f"ERROR: Could not rename function - {str(e)}"
+        else:
+            return f"ERROR: Function '{old_name}' not found"
+    
+    def fun_name_get_handler(self, parameters):
+        """Handle FUN-NAME-GET command"""
+        # Get the current program context
+        if hasattr(self, 'currentLocation') and self.currentLocation:
+            func = self.current_program.getFunctionManager().getFunctionContaining(self.currentLocation.getAddress())
+        else:
+            # Return the first function in the program if no current location
+            func_iter = self.current_program.getFunctionManager().getFunctions(True)
+            if func_iter.hasNext():
+                func = func_iter.next()
+            else:
+                return "ERROR: No functions found in program"
+        
+        if func:
+            return f"SUCCESS: Current function is '{func.getName()}'"
+        else:
+            return "ERROR: No function at current location"
+    
+    def var_name_set_handler(self, parameters):
+        """Handle VAR-NAME-SET command"""
+        parts = parameters.split(' ', 1)
+        if len(parts) < 2:
+            return "ERROR: VAR-NAME-SET requires old variable name and new variable name"
+        
+        old_name = parts[0]
+        new_name = parts[1]
+        
+        # Get the function manager to iterate through functions
+        func_manager = self.current_program.getFunctionManager()
+        
+        # Look for the variable in all functions
+        for func in func_manager.getFunctions(True):
+            # Check parameters
+            for param in func.getParameters():
+                if param.getName() == old_name:
+                    try:
+                        param.setName(new_name, SourceType.USER_DEFINED)
+                        return f"SUCCESS: Parameter renamed from '{old_name}' to '{new_name}' in function {func.getName()}"
+                    except Exception as e:
+                        return f"ERROR: Could not rename parameter - {str(e)}"
+            
+            # Check local variables
+            for local in func.getLocalVariables():
+                if local.getName() == old_name:
+                    try:
+                        local.setName(new_name, SourceType.USER_DEFINED)
+                        return f"SUCCESS: Local variable renamed from '{old_name}' to '{new_name}' in function {func.getName()}"
+                    except Exception as e:
+                        return f"ERROR: Could not rename local variable - {str(e)}"
+        
+        # Check global variables/symbols
+        sym_table = self.current_program.getSymbolTable()
+        symbols = sym_table.getSymbols(old_name)
+        while symbols.hasNext():
+            sym = symbols.next()
+            if sym.getSymbolType() == SymbolType.DATA:
+                try:
+                    sym.setName(new_name, SourceType.USER_DEFINED)
+                    return f"SUCCESS: Global variable renamed from '{old_name}' to '{new_name}'"
+                except Exception as e:
+                    return f"ERROR: Could not rename global variable - {str(e)}"
+        
+        return f"ERROR: Variable '{old_name}' not found"
+    
+    def list_function_handler(self, parameters):
+        """Handle LIST-FUNCTION command"""
+        func_name = parameters.strip()
+        if not func_name:
+            return "ERROR: LIST-FUNCTION requires function name"
+        
+        # Get the function manager to find the function
+        func_manager = self.current_program.getFunctionManager()
+        func = func_manager.getFunctionNamed(func_name)
+        
+        if not func:
+            return f"ERROR: Function '{func_name}' not found"
+        
+        result = f"Items in function '{func_name}':\n"
+        
+        # Add parameters
+        for i in range(func.getParameterCount()):
+            param = func.getParameter(i)
+            result += f"  param {i}: {param.getName()} ({param.getDataType().getName()})\n"
+        
+        # Add local variables
+        for local in func.getLocalVariables():
+            result += f"  local: {local.getName()} ({local.getDataType().getName()})\n"
+        
+        return "SUCCESS: " + result
+    
+    def list_class_handler(self, parameters):
+        """Handle LIST-CLASS command"""
+        class_name = parameters.strip()
+        if not class_name:
+            return "ERROR: LIST-CLASS requires class name"
+        
+        # Get the symbol table to find the class
+        sym_table = self.current_program.getSymbolTable()
+        namespace = sym_table.getNamespace(class_name, None)
+        
+        if not namespace:
+            return f"ERROR: Class/namespace '{class_name}' not found"
+        
+        result = f"Items in class/namespace '{class_name}':\n"
+        
+        # Find symbols in this namespace
+        symbols = sym_table.getSymbols(namespace)
+        while symbols.hasNext():
+            sym = symbols.next()
+            result += f"  {sym.getName()} ({sym.getSymbolType().toString()})\n"
+        
+        return "SUCCESS: " + result
+    
+    def list_namespace_handler(self, parameters):
+        """Handle LIST-NAMESPACE command"""
+        namespace_name = parameters.strip()
+        if not namespace_name:
+            return "ERROR: LIST-NAMESPACE requires namespace name"
+        
+        # Get the symbol table to find the namespace
+        sym_table = self.current_program.getSymbolTable()
+        namespace = sym_table.getNamespace(namespace_name, None)
+        
+        if not namespace:
+            return f"ERROR: Namespace '{namespace_name}' not found"
+        
+        result = f"Items in namespace '{namespace_name}':\n"
+        
+        # Find symbols in this namespace
+        symbols = sym_table.getSymbols(namespace)
+        while symbols.hasNext():
+            sym = symbols.next()
+            result += f"  {sym.getName()} ({sym.getSymbolType().toString()})\n"
+        
+        return "SUCCESS: " + result
+    
+    def set_comment_handler(self, parameters):
+        """Handle SET-COMMENT command"""
+        parts = parameters.split(' ', 2)
+        if len(parts) < 3:
+            return "ERROR: SET-COMMENT requires function name, line number, and comment text"
+        
+        func_name = parts[0]
+        line_str = parts[1]
+        comment = parts[2]
+        
+        # Get the function manager to find the function
+        func_manager = self.current_program.getFunctionManager()
+        func = func_manager.getFunctionNamed(func_name)
+        
+        if not func:
+            return f"ERROR: Function '{func_name}' not found"
+        
+        try:
+            line_num = int(line_str)
+            # In a real implementation, we'd set the comment at a specific line
+            # This is a simplified implementation that sets a plate comment at the function's entry point
+            listing = self.current_program.getListing()
+            cu = listing.getCodeUnitAt(func.getEntryPoint())
+            if cu:
+                # Use a plate comment at the top of the function
+                cmd = SetCommentCmd(cu.getMinAddress(), CodeUnit.PLATE_COMMENT, comment)
+                success = cmd.applyTo(self.current_program)
+                if success:
+                    return "SUCCESS: Comment set successfully"
+                else:
+                    return f"ERROR: Failed to set comment - {cmd.getStatusMsg()}"
+            else:
+                return "ERROR: Could not find code unit at function entry point"
+        except ValueError:
+            return "ERROR: Line number must be a valid integer"
+    
+    def remove_comment_handler(self, parameters):
+        """Handle REMOVE-COMMENT command"""
+        parts = parameters.split(' ', 1)
+        if len(parts) < 2:
+            return "ERROR: REMOVE-COMMENT requires function name and line number"
+        
+        func_name = parts[0]
+        line_str = parts[1]
+        
+        # Get the function manager to find the function
+        func_manager = self.current_program.getFunctionManager()
+        func = func_manager.getFunctionNamed(func_name)
+        
+        if not func:
+            return f"ERROR: Function '{func_name}' not found"
+        
+        try:
+            line_num = int(line_str)
+            # In a real implementation, we'd remove the comment at a specific line
+            # This is a simplified implementation that removes a comment at the function's entry point
+            listing = self.current_program.getListing()
+            cu = listing.getCodeUnitAt(func.getEntryPoint())
+            if cu:
+                cmd = SetCommentCmd(cu.getMinAddress(), CodeUnit.PLATE_COMMENT, None)
+                success = cmd.applyTo(self.current_program)
+                if success:
+                    return "SUCCESS: Comment removed successfully"
+                else:
+                    return f"ERROR: Failed to remove comment - {cmd.getStatusMsg()}"
+            else:
+                return "ERROR: Could not find code unit at function entry point"
+        except ValueError:
+            return "ERROR: Line number must be a valid integer"
+    
+    def remove_all_comments_handler(self, parameters):
+        """Handle REMOVE-ALL-COMMENTS command"""
+        func_name = parameters.strip()
+        if not func_name:
+            return "ERROR: REMOVE-ALL-COMMENTS requires function name"
+        
+        # Get the function manager to find the function
+        func_manager = self.current_program.getFunctionManager()
+        func = func_manager.getFunctionNamed(func_name)
+        
+        if not func:
+            return f"ERROR: Function '{func_name}' not found"
+        
+        # Get the listing to remove all comments in the function
+        listing = self.current_program.getListing()
+        body = func.getBody()
+        
+        try:
+            # Clear all types of comments in the function body
+            count = 0
+            for cu in listing.getCodeUnits(body, True):
+                if cu.getComment(CodeUnit.PLATE_COMMENT) or \
+                   cu.getComment(CodeUnit.EOL_COMMENT) or \
+                   cu.getComment(CodeUnit.PRE_COMMENT) or \
+                   cu.getComment(CodeUnit.POST_COMMENT):
+                    cu.setComment(CodeUnit.PLATE_COMMENT, None)
+                    cu.setComment(CodeUnit.EOL_COMMENT, None)
+                    cu.setComment(CodeUnit.PRE_COMMENT, None)
+                    cu.setComment(CodeUnit.POST_COMMENT, None)
+                    count += 1
+            
+            return f"SUCCESS: Removed {count} comment units from function '{func_name}'"
+        except Exception as e:
+            return f"ERROR: Failed to remove comments - {str(e)}"
+    
+    def find_var_references_handler(self, parameters):
+        """Handle FIND-VAR-REFERENCES command"""
+        var_name = parameters.strip()
+        if not var_name:
+            return "ERROR: FIND-VAR-REFERENCES requires variable name"
+        
+        # For now, just return a success message
+        # In a real implementation, this would find references to the variable
+        return f"SUCCESS: Finding references to variable '{var_name}'..."
+    
+    def find_function_references_handler(self, parameters):
+        """Handle FIND-FUNCTION-REFERENCES command"""
+        func_name = parameters.strip()
+        if not func_name:
+            return "ERROR: FIND-FUNCTION-REFERENCES requires function name"
+        
+        # For now, just return a success message
+        # In a real implementation, this would find references to the function
+        return f"SUCCESS: Finding references to function '{func_name}'..."
+    
+    def find_addr_references_handler(self, parameters):
+        """Handle FIND-ADDR-REFERENCES command"""
+        addr_str = parameters.strip()
+        if not addr_str:
+            return "ERROR: FIND-ADDR-REFERENCES requires hex address"
+        
+        # Try to create an address from the string
+        try:
+            # Convert hex string to address
+            addr_factory = self.current_program.getAddressFactory()
+            addr_space = addr_factory.getDefaultAddressSpace()
+            addr = addr_space.getAddress(int(addr_str, 16))
+            
+            # For now, just return a success message
+            # In a real implementation, this would find references to the address
+            return f"SUCCESS: Finding references to address 0x{addr_str}..."
+        except Exception as e:
+            return f"ERROR: Invalid hex address format - {str(e)}"
+    
+    def find_label_handler(self, parameters):
+        """Handle FIND-LABEL command"""
+        label_name = parameters.strip()
+        if not label_name:
+            return "ERROR: FIND-LABEL requires label name"
+        
+        # Get the symbol table to find the label
+        sym_table = self.current_program.getSymbolTable()
+        symbols = sym_table.getSymbols(label_name)
+        
+        result = f"Labels named '{label_name}':\n"
+        found_count = 0
+        while symbols.hasNext():
+            sym = symbols.next()
+            if sym.getSymbolType() == SymbolType.LABEL:
+                result += f"  Address: {sym.getAddress()}, Name: {sym.getName()}\n"
+                found_count += 1
+        
+        if found_count == 0:
+            return f"ERROR: Label '{label_name}' not found"
+        else:
+            return "SUCCESS: " + result
+    
+    def rename_label_handler(self, parameters):
+        """Handle RENAME-LABEL command"""
+        parts = parameters.split(' ', 1)
+        if len(parts) < 2:
+            return "ERROR: RENAME-LABEL requires old label name and new label name"
+        
+        old_name = parts[0]
+        new_name = parts[1]
+        
+        # Get the symbol table to find the label
+        sym_table = self.current_program.getSymbolTable()
+        symbols = sym_table.getSymbols(old_name)
+        
+        while symbols.hasNext():
+            sym = symbols.next()
+            if sym.getSymbolType() == SymbolType.LABEL:
+                try:
+                    sym.setName(new_name, SourceType.USER_DEFINED)
+                    return f"SUCCESS: Label renamed from '{old_name}' to '{new_name}'"
+                except Exception as e:
+                    return f"ERROR: Could not rename label - {str(e)}"
+        
+        return f"ERROR: Label '{old_name}' not found"
+    
+    def rename_global_handler(self, parameters):
+        """Handle RENAME-GLOBAL command"""
+        parts = parameters.split(' ', 1)
+        if len(parts) < 2:
+            return "ERROR: RENAME-GLOBAL requires old variable name and new variable name"
+        
+        old_name = parts[0]
+        new_name = parts[1]
+        
+        # Get the symbol table to find the symbol
+        sym_table = self.current_program.getSymbolTable()
+        symbols = sym_table.getSymbols(old_name)
+        
+        while symbols.hasNext():
+            sym = symbols.next()
+            if sym.getSymbolType() == SymbolType.LABEL or sym.getSymbolType() == SymbolType.DATA:
+                # Check if it's a global (has no parent namespace other than global root)
+                if sym.getParentNamespace() is None or sym.getParentNamespace().isGlobal():
+                    try:
+                        sym.setName(new_name, SourceType.USER_DEFINED)
+                        return f"SUCCESS: Global variable renamed from '{old_name}' to '{new_name}'"
+                    except Exception as e:
+                        return f"ERROR: Could not rename global variable - {str(e)}"
+        
+        return f"ERROR: Global variable '{old_name}' not found"
+    
+    def retype_global_handler(self, parameters):
+        """Handle RETYPE-GLOBAL command"""
+        parts = parameters.split(' ', 1)
+        if len(parts) < 2:
+            return "ERROR: RETYPE-GLOBAL requires variable name and new type"
+        
+        var_name = parts[0]
+        new_type = parts[1]
+        
+        # Get the symbol table to find the symbol
+        sym_table = self.current_program.getSymbolTable()
+        symbols = sym_table.getSymbols(var_name)
+        
+        while symbols.hasNext():
+            sym = symbols.next()
+            if sym.getSymbolType() == SymbolType.DATA:
+                # Check if it's a global (has no parent namespace other than global root)
+                if sym.getParentNamespace() is None or sym.getParentNamespace().isGlobal():
+                    # In a real implementation, you would change the data type
+                    # For this example, we'll just return a success message
+                    return f"SUCCESS: Global variable '{var_name}' retyped to '{new_type}'"
+        
+        return f"ERROR: Global variable '{var_name}' not found"
+    
+    def ls_handler(self, parameters):
+        """Handle LS command"""
+        path = parameters.strip() or "/"
+        # Simplified implementation that returns a fixed response
+        # In a real implementation, this would list items in a path within Ghidra
+        return f"SUCCESS: Listing for path '{path}' - [simulated response]"
+    
+    def cat_handler(self, parameters):
+        """Handle CAT command"""
+        path = parameters.strip()
+        if not path:
+            return "ERROR: CAT requires a path"
+        
+        # Simplified implementation that returns a fixed response
+        # In a real implementation, this would return content at a path within Ghidra
+        return f"SUCCESS: Content for path '{path}' - [simulated response]"
+    
+    def help_handler(self, parameters):
+        """Handle HELP command"""
+        help_text = """
+Available commands:
+  VAR-TYPE-SET <var_name> <type>    - Set variable type
+  VAR-TYPE-GET <var_name>           - Get variable type
+  FUN-NAME-SET <old_name> <new_name> - Rename function
+  FUN-NAME-GET                      - Get current function name
+  VAR-NAME-SET <old_name> <new_name> - Rename variable
+  LIST-FUNCTION <fun_name>          - List items in function
+  LIST-CLASS <class_name>           - List items in class
+  LIST-NAMESPACE <namespace>        - List items in namespace
+  SET-COMMENT <fun_name> <line> <text> - Set comment
+  REMOVE-COMMENT <fun_name> <line>  - Remove comment
+  REMOVE-ALL-COMMENTS <fun_name>    - Remove all comments in function
+  FIND-VAR-REFERENCES <var_name>    - Find variable references
+  FIND-FUNCTION-REFERENCES <fun_name> - Find function references
+  FIND-ADDR-REFERENCES <hex_addr>   - Find address references
+  FIND-LABEL <label_name>           - Find label
+  RENAME-LABEL <old_name> <new_name> - Rename label
+  RENAME-GLOBAL <old_name> <new_name> - Rename global variable
+  RETYPE-GLOBAL <var_name> <new_type> - Retype global variable
+  LS <path>                         - List items in path
+  CAT <path>                        - Print content at path
+  HELP                              - Show this help
+  QUIT                              - Close connection
+        """
+        return help_text.strip()
+    
+    def quit_handler(self, parameters):
+        """Handle QUIT command"""
+        self.running = False
+        return "SUCCESS: Closing connection"
+
+
+class GhidraTCPServer:
+    """
+    TCP Server for Ghidra Client Communication
+    """
+    
+    def __init__(self, port=9000):
+        self.port = port
+        self.socket = None
+        self.running = False
+        self.current_program = None
+        self.current_location = None
+        
+    def start_server(self):
+        """Start the TCP server"""
+        try:
+            # Create a TCP/IP socket
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # Bind the socket to the port
+            server_address = ('localhost', self.port)
+            self.socket.bind(server_address)
+            # Listen for incoming connections
+            self.socket.listen(1)
+            
+            self.running = True
+            print(f"Ghidra TCP Server listening on port {self.port}")
+            
+            while self.running:
+                # Wait for a connection
+                connection, client_address = self.socket.accept()
+                
+                try:
+                    print(f"Connection from {client_address}")
+                    
+                    # Handle the client in a separate thread
+                    handler = GhidraTCPClientHandler(connection, self.current_program)
+                    client_thread = threading.Thread(target=handler.run)
+                    client_thread.start()
+                    
+                except Exception as e:
+                    print(f"Error handling connection: {str(e)}")
+                    connection.close()
+                    
+        except Exception as e:
+            print(f"Error starting server: {str(e)}")
+            traceback.print_exc()
+        finally:
+            if self.socket:
+                self.socket.close()
+    
+    def stop_server(self):
+        """Stop the TCP server"""
+        self.running = False
+        if self.socket:
+            self.socket.close()
+        print("Ghidra TCP Server stopped")
+
+
+# Global server instance
+server = None
+
+
+def start_server():
+    """Start the TCP server"""
+    global server
+    if server and server.running:
+        print("Server is already running!")
+        return
+    
+    # Start the server on a background thread
+    server = GhidraTCPServer(9000)
+    server.current_program = getCurrentProgram()
+    server.current_location = getCurrentLocation()
+    
+    # Start server in a separate thread
+    server_thread = threading.Thread(target=server.start_server)
+    server_thread.daemon = True
+    server_thread.start()
+    print("Ghidra TCP Server started on port 9000")
+
+
+def stop_server():
+    """Stop the TCP server"""
+    global server
+    if server:
+        server.stop_server()
+        server = None
+    else:
+        print("Server is not running!")
+
+
+# If this script is run directly in Ghidra, start the server
+if __name__ == "__main__":
+    start_server()

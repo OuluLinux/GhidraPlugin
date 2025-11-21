@@ -3,3 +3,45 @@ build/
 dist/
 *.log
 gradle-local.properties
+# Plugin artifacts
+*.jar
+GhidraTCPCommentingPlugin/
+*.tar.gz
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.#*
+.DS_Store
+Thumbs.db
+
+# Development artifacts
+ghidra/
+ghidra-Ghidra_11.4.2_build/
+*.swp
+*.swo
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
