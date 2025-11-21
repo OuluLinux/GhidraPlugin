@@ -10,11 +10,20 @@ We have explored both Java and Jython approaches for implementing a TCP server p
 
 Based on our analysis, we recommend treating the Python (Jython) approach as the main route for implementing the TCP server, with the Java implementation serving as an alternative for deployment if needed later.
 
+## Repository Structure
+
+The repository follows this organized structure:
+- `src/python/` - Python source code files
+- `docs/` - Documentation files
+- `tests/python/` - Python test files
+- `tmp/` - Temporary files (excluded from git)
+- Root directory - Build scripts and main project files
+
 ## Files in Each Approach
 
 ### Python (Jython) Implementation (Main Approach)
-- `ghidra_tcp_server_enhanced.py` : Main implementation of the TCP server (Jython compatible with port selection)
-- `run_tcp_server.py` : Entry point script to start the server
+- `src/python/ghidra_tcp_server_enhanced.py` : Main implementation of the TCP server (Jython compatible with port selection)
+- `src/python/run_tcp_server.py` : Entry point script to start the server
 - `start_ghidra_with_tcp_server.sh` : Script to launch Ghidra with instructions
 
 ### Java Implementation (Alternative)
@@ -136,7 +145,7 @@ After starting the server from within Ghidra:
 3. Or use the demo client:
    ```bash
    cd /common/active/sblo/Dev/GhidraPlugin
-   python3 demo_client.py
+   python3 tests/python/demo_client.py
    ```
 
 ## Command Examples

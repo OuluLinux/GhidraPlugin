@@ -7,6 +7,17 @@ gradle-local.properties
 *.jar
 GhidraTCPCommentingPlugin/
 *.tar.gz
+*.zip
+*.tar
+*.gz
+
+# Build directories
+.out/
+output/
+target/
+.classpath
+.project
+.settings/
 
 # Python cache files
 __pycache__/
@@ -23,6 +34,9 @@ __pycache__/
 .#*
 .DS_Store
 Thumbs.db
+
+# Temporary directory
+tmp/
 
 # Development artifacts
 ghidra/

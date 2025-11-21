@@ -12,6 +12,13 @@ Through the development process, we discovered:
 2. The Jython approach offers a more accessible and practical development pathway
 3. Based on practical considerations, **the Python (Jython) route is now recommended as the main approach**
 
+## Repository Structure
+The repository has been organized with the following structure:
+- `src/python/` - Contains Python source code files
+- `docs/` - Contains documentation files
+- `tests/python/` - Contains Python test files
+- `tmp/` - Temporary files directory (added to .gitignore)
+
 ## Completed Tasks
 1. Successfully built Ghidra v11.4.2 from source code
 2. Created comprehensive implementations for both Java and Python routes
