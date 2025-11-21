@@ -1,0 +1,4 @@
+'''
+One-liner command for Jython console:
+exec(open('/common/active/sblo/Dev/GhidraPlugin/ghidra_tcp_server_enhanced.py').read()); start_server()
+'''
