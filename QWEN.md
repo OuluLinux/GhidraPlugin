@@ -136,5 +136,73 @@ The plugin provides a TCP server for client communication with Ghidra, supportin
 - Jython (built into Ghidra) for Python route
 - Proper Ghidra API classpath for Java route
 
+## Client Program Usage for Decompilation Progression
+
+The TCP server enables remote decompilation and analysis capabilities. Clients can connect to perform various reverse engineering tasks:
+
+### Starting the Server in Ghidra
+First, execute the script in the Ghidra Jython interpreter:
+```python
+exec(open('/common/active/sblo/Dev/GhidraPlugin/ghidra_tcp_server_enhanced.py').read())
+start_server(9003)
+```
+
+### Using the Client Program for Decompilation Progression
+
+The TCP server enables remote decompilation and analysis capabilities. Clients can connect to perform various reverse engineering tasks:
+
+1. **Decompilation Commands**:
+   - `DECOMPILE <function_name>` - Retrieves the decompiled source of a function
+   - `CAT <function_name>` - Alternative command for decompilation
+
+2. **Analysis Commands**:
+   - `FIND-XREFS <function_name>` - Find cross-references (callers and callees)
+   - `FIND-SYMBOL <pattern>` - Find symbols matching a pattern
+   - `GET-MEMORY-INFO` - Get information about memory sections
+   - `EXPORT-ANALYSIS` - Export analysis results in JSON format
+
+3. **Program Navigation**:
+   - `LIST-ALL-FUNCTIONS` - Get all functions in the program
+   - `GET-FUNCTION-INFO <func_name>` - Get detailed information about a function
+   - `FUN-NAME-GET` - Get the current function name
+
+4. **Code Modification**:
+   - `FUN-NAME-SET <old> <new>` - Rename a function
+   - `SET-COMMENT <function> <line> <text>` - Add comments to code
+   - `REMOVE-COMMENT` - Remove comments
+
+### Example Client Session for Decompilation Progression
+
+The demo client can be used to progressively work through decompilation tasks:
+
+```bash
+# Connect and get a list of all functions
+python3 demo_client.py LIST-ALL-FUNCTIONS
+
+# Select a function to analyze and get information about it
+python3 demo_client.py GET-FUNCTION-INFO FUN_00401050
+
+# Find cross-references to understand how the function fits in the program
+python3 demo_client.py FIND-XREFS FUN_00401050
+
+# Get the decompiled source code
+python3 demo_client.py DECOMPILE FUN_00401050
+
+# Search for related functions using pattern matching
+python3 demo_client.py FIND-SYMBOL "main"
+
+# Export the analysis to preserve findings
+python3 demo_client.py EXPORT-ANALYSIS
+```
+
+### Interactive Mode
+
+For continuous work, the demo client has an interactive mode:
+```bash
+python3 demo_client.py interactive
+```
+
+This allows for efficient workflow where you can quickly inspect multiple functions and progressively refine your understanding of the binary through automated remote analysis.
+
 ## Notes
 The plugin is designed to provide a TCP server interface that allows external clients to perform various tasks in Ghidra such as renaming functions/variables, getting/setting types, adding comments, etc. This enables integration with external tools and remote analysis capabilities. The Python implementation route is recommended for development and testing, while the Java route provides a more formal Ghidra integration.
