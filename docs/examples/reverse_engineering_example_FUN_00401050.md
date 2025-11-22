@@ -30,45 +30,52 @@ Based on the behavior of the function:
 
 ## Enhancement Steps
 
-To improve the semantic information of this function, we would use the following commands:
+To improve the semantic information of this function, we would run the following commands using the client.sh script:
 
 ### 1. Define the Structure
 
 First, we define the structure that is being manipulated:
 
-```
-STRUCT-DEFINE TimerStateStruct {
-  short:initialized_flag,
-  reserved:padding[6],  // 6 bytes to reach offset 8
-  int:counter1,
-  int:counter2
-}
+```bash
+./client.sh 9003 "STRUCT-DEFINE TimerStateStruct {short:initialized_flag,reserved:padding[6],int:counter1,int:counter2}"
 ```
 
 ### 2. Set the Parameter Type
 
 Then we set the proper type for the first parameter:
 
-```
-VAR-TYPE-SET param_1 TimerStateStruct*
+```bash
+./client.sh 9003 "VAR-TYPE-SET param_1 TimerStateStruct*"
 ```
 
 ### 3. Rename the Function
 
 We rename the function to better reflect its purpose:
 
-```
-FUN-NAME-SET FUN_00401050 adjust_timer_values_if_not_initialized
+```bash
+./client.sh 9003 "FUN-NAME-SET FUN_00401050 adjust_timer_values_if_not_initialized"
 ```
 
 ### 4. Rename the Parameters
 
 We rename the parameters to be more descriptive:
 
+```bash
+./client.sh 9003 "VAR-NAME-SET param_1 timer_state_ptr"
+./client.sh 9003 "VAR-NAME-SET param_2 adjustment_delta"
 ```
-VAR-NAME-SET param_1 timer_state_ptr
-VAR-NAME-SET param_2 adjustment_delta
+
+## Note on Server Availability
+
+Currently, the server running on port 9003 may not have all Phase 2 features available. To use all these commands, you would need to load the enhanced server version with:
+
+```bash
+# In Ghidra Script Manager:
+exec(open('/common/active/sblo/Dev/GhidraPlugin/src/python/ghidra_tcp_server_symbolic_exec.py').read())
+start_server(9003)
 ```
+
+After loading the enhanced version, the above client commands would work as described.
 
 ## Result
 
