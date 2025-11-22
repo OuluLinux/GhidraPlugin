@@ -40,14 +40,6 @@ class GhidraTCPClientHandler:
     Enhanced client handler that can process commands from TCP clients
     """
     
-
-    def find_function_by_name(self, func_manager, func_name):
-        """Helper method to find a function by name"""
-        for func in func_manager.getFunctions(True):  # True means forward direction
-            if func.getName() == func_name:
-                return func
-        return None
-
     def find_function_by_name(self, func_manager, func_name):
         """Helper method to find a function by name"""
         for func in func_manager.getFunctions(True):  # True means forward direction
