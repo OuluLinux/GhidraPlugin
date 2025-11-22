@@ -103,6 +103,10 @@ try (ServerSocket serverSocket = new ServerSocket(port)) {
 - Ghidra's test framework for integration tests
 - Mockito for mocking dependencies
 
+### Server Reload
+- To reload the server after code changes: `./remote_reload.py 9003`
+- This script enables reloading the TCP server without manually retyping command sequences
+
 ## Dependencies
 
 Ghidra plugin dependencies are typically managed in:

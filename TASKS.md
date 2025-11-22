@@ -76,6 +76,24 @@
 - [x] Add `PATH-CONDITIONS <function> <address>` - Get path conditions for specific address ✓ COMPLETED
 - [x] Add `EXECUTION-PATHS <function>` - Enumerate possible execution paths ✓ COMPLETED
 
+### Task 2.3: Batch Operations
+- [x] Add `BATCH-BEGIN` and `BATCH-END` commands for transaction groups ✓ COMPLETED
+- [x] Add `BATCH-EXECUTE <list_of_commands>` for bulk operations ✓ COMPLETED
+- [x] Add `BATCH-REVERT` for rollback functionality ✓ COMPLETED
+- [x] Add `BATCH-QUEUE <command>` for command queuing ✓ COMPLETED
+
+### Task 2.4: Pattern-Based Operations
+- [x] Add `PATTERN-RENAME-FUNCTIONS <regex_pattern> <replacement>` - Batch rename functions by pattern ✓ COMPLETED
+- [x] Add `PATTERN-RENAME-VARIABLES <regex_pattern> <replacement>` - Batch rename variables by pattern ✓ COMPLETED
+- [x] Add `PATTERN-SET-TYPE <regex_pattern> <new_type>` - Set types by pattern ✓ COMPLETED
+- [x] Add `PATTERN-FIND-UNNAMED <function_pattern>` - Find unnamed functions matching pattern ✓ COMPLETED
+
+### Task 2.5: Symbolic Execution Integration
+- [x] Add `DECOMPILE-WITH-PATH <function> <input_constraints>` - Decompile with specific input assumptions ✓ COMPLETED
+- [x] Add `SYMBOLIC-TRACE <function> <input_values>` - Generate symbolic execution trace ✓ COMPLETED
+- [x] Add `PATH-CONDITIONS <function> <address>` - Get path conditions for specific address ✓ COMPLETED
+- [x] Add `EXECUTION-PATHS <function>` - Enumerate possible execution paths ✓ COMPLETED
+
 ## Phase 3: Task & Roadmap Management
 
 ### Task 3.1: Personal Roadmap Features
@@ -157,8 +175,8 @@
 
 1. Enhance note-taking functionality: `NOTE-ADD`, `NOTE-LIST` ✓ COMPLETED
 2. Add bookmark management: `BOOKMARK-SET`, `BOOKMARK-GOTO`, `BOOKMARK-LIST` ✓ COMPLETED
-3. Implement simple roadmap system: `ROADMAP-ADD`, `ROADMAP-LIST`
-4. Add navigation commands: `NAVIGATE-TO`, `NAVIGATE-BACK`
-5. Enhance session management: `SESSION-SAVE`, `SESSION-LOAD`
-6. Add basic decompilation enhancements: `DECOMPILE-CFG`, `DECOMPILE-CONTEXT` ✓ COMPLETED
-7. Implement Phase 2 features: Structure/enum management, type hierarchy, batch operations, pattern operations, symbolic execution ✓ COMPLETED
+3. Add navigation commands: `NAVIGATE-TO`, `NAVIGATE-BACK`
+4. Enhance session management: `SESSION-SAVE`, `SESSION-LOAD`
+5. Add basic decompilation enhancements: `DECOMPILE-CFG`, `DECOMPILE-CONTEXT` ✓ COMPLETED
+6. Implement Phase 2 features: Structure/enum management, type hierarchy, batch operations, pattern operations, symbolic execution ✓ COMPLETED
+7. Clarify that "decompiling" means full reverse engineering process, including semantic improvements ✓ COMPLETED

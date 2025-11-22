@@ -155,13 +155,18 @@ exec(open('/common/active/sblo/Dev/GhidraPlugin/ghidra_tcp_server_enhanced.py').
 start_server(9003)
 ```
 
-### Using the Client Program for Decompilation Progression
+### Using the Client Program for Full Reverse Engineering Process
 
-The TCP server enables remote decompilation and analysis capabilities. Clients can connect to perform various reverse engineering tasks:
+The TCP server enables the full reverse engineering process, which goes beyond simple assembly-to-C conversion to include adding and fixing semantic information such as type names, variable names, re-typing variables, class definitions, and other clarifying annotations to improve reverse engineering understanding:
 
-1. **Decompilation Commands**:
-   - `DECOMPILE <function_name>` - Retrieves the decompiled source of a function
+1. **Reverse Engineering Commands**:
+   - `DECOMPILE <function_name>` - Retrieves the decompiled source to analyze for semantic improvements
    - `CAT <function_name>` - Alternative command for decompilation
+   - `STRUCT-DEFINE <name> {<field_spec>, ...}` - Define structures to clarify data layouts (Phase 2)
+   - `VAR-TYPE-SET <var_name> <type>` - Retype variables to improve readability
+   - `FUN-NAME-SET <old_name> <new_name>` - Rename functions to reflect their actual purpose
+   - `VAR-NAME-SET <old_name> <new_name>` - Rename variables to clarify their purpose
+   - `SET-COMMENT <function> <line> <text>` - Add comments to clarify functionality
 
 2. **Analysis Commands**:
    - `FIND-XREFS <function_name>` - Find cross-references (callers and callees)
@@ -289,6 +294,10 @@ stop_server() ; exec(open('/common/active/sblo/Dev/GhidraPlugin/src/python/ghidr
 To assist with this, we provide:
 1. The `start_server_manual_command.sh` script that echoes this command for easy copy/paste
 2. Enhanced reload functions that provide simpler alternatives
+3. The `remote_reload.py` script for reloading the server after code modifications:
+   ```bash
+   ./remote_reload.py 9003
+   ```
 
 ## Notes
 The plugin is designed to provide a TCP server interface that allows external clients to perform various tasks in Ghidra such as renaming functions/variables, getting/setting types, adding comments, etc. This enables integration with external tools and remote analysis capabilities. The Python implementation route is recommended for development and testing, while the Java route provides a more formal Ghidra integration. The new reload functionality significantly improves the development workflow by eliminating the need to retype complex command sequences.
