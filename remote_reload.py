@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
 Client script to remotely trigger a Ghidra TCP server reload
+
+NOTES:
+- This script sends RELOAD/RESTART commands to a running server
+- For Phase 2 features (STRUCT-DEFINE, BATCH-EXECUTE, etc.), the enhanced server
+  must be loaded in Ghidra: exec(open('src/python/ghidra_tcp_server_symbolic_exec.py').read())
 """
 import socket
 import sys
@@ -57,10 +62,10 @@ def trigger_reload(host='localhost', port=9003):
     Send a reload command to the server using the special RELOAD command
     """
     print(f'Sending reload command to Ghidra TCP Server at {host}:{port}...')
-    
+
     response = send_command(host, port, 'RELOAD')
     print(f'Server response: {response}')
-    
+
     if 'RELOADING' in response or 'reload' in response.lower():
         print('Server acknowledged reload request.')
         return True
@@ -74,13 +79,19 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: python3 remote_reload.py <port> [host]")
         print("Example: python3 remote_reload.py 9003")
+        print("")
+        print("NOTES:")
+        print("- This script sends RELOAD/RESTART commands to a running server")
+        print("- For Phase 2 features (STRUCT-DEFINE, BATCH-EXECUTE, etc.), the enhanced server")
+        print("  must be loaded in Ghidra:")
+        print("  exec(open('src/python/ghidra_tcp_server_symbolic_exec.py').read()); start_server(9003)")
         sys.exit(1)
 
     port = int(sys.argv[1])
     host = sys.argv[2] if len(sys.argv) > 2 else 'localhost'
-    
+
     success = trigger_reload(host, port)
-    
+
     if success:
         print("\nServer reload triggered successfully!")
         print("The server is now ready to reload - run 'reload_server()' in Ghidra console")
